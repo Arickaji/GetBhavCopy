@@ -29,7 +29,7 @@ jobs:
           pip install pyinstaller
 
       - name: Build (PyInstaller onedir)
-        run: pyinstaller --noconfirm --clean --windowed --name getbhavcopy app/main.py
+        run: pyinstaller --noconfirm --clean --windowed --name getbhavcopy src/BhavCopy.py
 
       - name: Zip dist folder
         run: |
