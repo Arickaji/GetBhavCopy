@@ -164,7 +164,6 @@ def GetData():
     pb["value"] = 90
     root.update_idletasks()
 
-    print(returnValue)
     if returnValue.empty:
         msgBox = messagebox.showerror("GetBhavCopy", "No Data Downloaded")
         pb["value"] = 0
@@ -177,7 +176,7 @@ def GetData():
         Endyear.set(currentDate.split("-")[2])
     
     #returnValue.to_csv("bhavcopy.csv", index=False)
-    with open("SaveDirPath.json", "r") as f:
+    with open("../SaveDirPath.json", "r") as f:
         config_file = js.load(f)
 
     pb["value"] = 100
@@ -276,7 +275,7 @@ FolderPathButton.place(x=width-450, y=height-160)
 FolderPathAnswer = Label(rootFrame, font=("SF Pro", 12 , "bold"))
 FolderPathAnswer.place(x=width-350, y=height-160)
 
-with open("SaveDirPath.json", "r") as f:
+with open("../SaveDirPath.json", "r") as f:
     config_file = js.load(f)
 
 FolderPathAnswer["text"] = config_file["DirPath"]
