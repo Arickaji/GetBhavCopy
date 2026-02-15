@@ -17,6 +17,9 @@ build/
 dist/
 *.spec
 
+# JSON
+*.json
+
 # OS files
 .DS_Store
 Thumbs.db
