@@ -1,0 +1,51 @@
+name: Build & Release Windows EXE (PyInstaller onedir)
+
+on:
+  push:
+    tags:
+      - "v*.*.*"   # e.g. v1.0.0
+  workflow_dispatch:
+
+permissions:
+  contents: write   # required to create a Release and upload assets
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build (PyInstaller onedir)
+        run: |
+          pyinstaller --noconfirm --clean --windowed ^
+            --name getbhavcopy ^
+            app/main.py
+
+      - name: Zip dist folder
+        run: |
+          powershell -Command "Compress-Archive -Path dist\getbhavcopy\* -DestinationPath dist\getbhavcopy-windows.zip -Force"
+
+      - name: Upload artifact (Actions)
+        uses: actions/upload-artifact@v4
+        with:
+          name: getbhavcopy-windows-zip
+          path: dist/getbhavcopy-windows.zip
+
+      - name: Create Release + upload asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/getbhavcopy-windows.zip
+          generate_release_notes: true
