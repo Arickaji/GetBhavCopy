@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  quality-check:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,7 +24,7 @@ jobs:
           pip install -e .
           pip install pytest ruff
 
-      - name: Lint
+      - name: Code quality check - Lint (ruff)
         run: ruff check .
 
       - name: Tests

@@ -14,7 +14,7 @@ def limitSizeDay(*args):
     value = day.get()
     # if int(value) > 31 or (str(value.lower()) >= 'a' and str(value.upper()) <= 'z'):
     if value != "":
-        if value.isdigit() == False or int(value) > 31:
+        if not value.isdigit() or int(value) > 31:
             day.set("")
         else:
             if len(value) > 2:
@@ -36,7 +36,7 @@ def limitSizeDay(*args):
 def limitSizeMonth(*args):
     value = month.get()
     if value != "":
-        if value.isdigit() == False or int(value) > 12:
+        if not value.isdigit() or int(value) > 12:
             month.set("")
         else:
             if len(value) > 2:
@@ -58,7 +58,7 @@ def limitSizeMonth(*args):
 def limitSizeYear(*args):
     value = year.get()
     if value != "":
-        if value.isdigit() == False:
+        if not value.isdigit():
             year.set("")
         else:
             if len(value) > 4:
@@ -79,7 +79,7 @@ def EndlimitSizeDay(*args):
     value = Endday.get()
     # if int(value) > 31 or (str(value.lower()) >= 'a' and str(value.upper()) <= 'z'):
     if value != "":
-        if value.isdigit() == False or int(value) > 31:
+        if not value.isdigit() or int(value) > 31:
             Endday.set("")
         else:
             if len(value) > 2:
@@ -101,7 +101,7 @@ def EndlimitSizeDay(*args):
 def EndlimitSizeMonth(*args):
     value = Endmonth.get()
     if value != "":
-        if value.isdigit() == False or int(value) > 12:
+        if not value.isdigit() or int(value) > 12:
             Endmonth.set("")
         else:
             if len(value) > 2:
@@ -123,7 +123,7 @@ def EndlimitSizeMonth(*args):
 def EndlimitSizeYear(*args):
     value = Endyear.get()
     if value != "":
-        if value.isdigit() == False:
+        if not value.isdigit():
             Endyear.set("")
         else:
             if len(value) > 4:
@@ -166,14 +166,15 @@ def GetData():
 
     if returnValue.empty:
         msgBox = messagebox.showerror("GetBhavCopy", "No Data Downloaded")
-        pb["value"] = 0
-        currentDate = datetime.today().strftime("%d-%m-%Y")
-        day.set(currentDate.split("-")[0])
-        month.set(currentDate.split("-")[1])
-        year.set(currentDate.split("-")[2])
-        Endday.set(currentDate.split("-")[0])
-        Endmonth.set(currentDate.split("-")[1])
-        Endyear.set(currentDate.split("-")[2])
+        if msgBox:
+            pb["value"] = 0
+            currentDate = datetime.today().strftime("%d-%m-%Y")
+            day.set(currentDate.split("-")[0])
+            month.set(currentDate.split("-")[1])
+            year.set(currentDate.split("-")[2])
+            Endday.set(currentDate.split("-")[0])
+            Endmonth.set(currentDate.split("-")[1])
+            Endyear.set(currentDate.split("-")[2])
     
     #returnValue.to_csv("bhavcopy.csv", index=False)
     with open("../SaveDirPath.json", "r") as f:
