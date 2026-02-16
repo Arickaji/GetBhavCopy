@@ -4,7 +4,7 @@ from tkinter import filedialog
 from tkinter import ttk
 from tkinter.ttk import Style
 from tkinter import messagebox
-import GetBhavCopy as GBC
+from getbhavcopy.core import GetBhavCopy as GBC
 import json as js
 import os
 
