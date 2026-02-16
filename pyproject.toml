@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "getbhavcopy"
+version = "0.1.0"
+description = "GetBhavCopy downloader (NSE equity + indices)"
+requires-python = ">=3.10"
+dependencies = [
+  "requests",
+  "pandas",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
