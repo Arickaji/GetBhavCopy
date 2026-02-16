@@ -2,7 +2,6 @@ import requests
 import pandas as pd
 from io import StringIO
 from datetime import datetime
-import os
 
 class GetBhavCopy:
     def __init__(self , Start_date , End_date , SaveFolderName , ProgramBarValue , RootWindow):
@@ -11,6 +10,12 @@ class GetBhavCopy:
         self.SaveFolderName = SaveFolderName
         self.ProgramBarValue = ProgramBarValue
         self.rootWindow = RootWindow
+    
+    def _progress(self, value: int) -> None:
+        if self.ProgramBarValue is not None:
+            self.ProgramBarValue["value"] = value
+        if self.rootWindow is not None:
+            self.rootWindow.update_idletasks()
 
     def get_nse_indices_data(self) -> pd.DataFrame:
         d = datetime.strptime(self.Start_date, "%Y-%m-%d")
@@ -24,7 +29,11 @@ class GetBhavCopy:
 
         r = requests.get(url, headers=headers, timeout=15)
 
-        if r.status_code != 200 or len(r.text) < 100:
+        if r.status_code != 200:
+            raise ValueError("Bhavcopy not available (holiday or invalid date)")
+
+        text = r.text.strip()
+        if "\n" not in text:
             raise ValueError("Bhavcopy not available (holiday or invalid date)")
 
         df = pd.read_csv(StringIO(r.text))
@@ -67,19 +76,21 @@ class GetBhavCopy:
             "Referer": "https://www.nseindia.com"
         }
 
-        self.ProgramBarValue["value"] = 10
-        self.rootWindow.update_idletasks()
+        self._progress(10)
 
         r = requests.get(url, headers=headers, timeout=15)
 
-        if r.status_code != 200 or len(r.text) < 100:
+        if r.status_code != 200:
+            raise ValueError("Bhavcopy not available (holiday or invalid date)")
+
+        text = r.text.strip()
+        if "\n" not in text:
             raise ValueError("Bhavcopy not available (holiday or invalid date)")
 
         df = pd.read_csv(StringIO(r.text))
         df.columns = df.columns.str.strip().str.upper()
 
-        self.ProgramBarValue["value"] = 50
-        self.rootWindow.update_idletasks()
+        self._progress(50)
 
         df = df.rename(columns={
             "OPEN_PRICE": "OPEN",
@@ -96,8 +107,7 @@ class GetBhavCopy:
         # DATE comes from URL — safest
         final_df["DATE"] = d.strftime("%Y-%m-%d")
 
-        self.ProgramBarValue["value"] = 80
-        self.rootWindow.update_idletasks()
+        self._progress(80)
 
         return final_df[[
             "SYMBOL",
