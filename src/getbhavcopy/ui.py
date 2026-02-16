@@ -4,11 +4,28 @@ from tkinter import filedialog
 from tkinter import ttk
 from tkinter.ttk import Style
 from tkinter import messagebox
-from getbhavcopy.core import GetBhavCopy as GBC
+from getbhavcopy.core import GetBhavCopy
 import json as js
 import os
+from pathlib import Path
 
+def get_config_path() -> Path:
+    appdata = os.getenv("APPDATA")
+    base = Path(appdata) / "GetBhavCopy" if appdata else Path.home() / ".getbhavcopy"
+    base.mkdir(parents=True, exist_ok=True)
+    return base / "SaveDirPath.json"
 
+def load_config() -> dict:
+    path = get_config_path()
+    if not path.exists():
+        default = {"DirPath": str(Path.cwd())}
+        path.write_text(js.dumps(default, indent=2))
+        return default
+    return js.loads(path.read_text())
+
+def save_config(cfg: dict) -> None:
+    path = get_config_path()
+    path.write_text(js.dumps(cfg, indent=2))
 
 def limitSizeDay(*args):
     value = day.get()
@@ -131,33 +148,20 @@ def EndlimitSizeYear(*args):
 
 def GetFolderPath():
     path= filedialog.askdirectory(title="Select a Folder")
-    if path != "":
+    if path:
         FolderPathAnswer["text"] = path
-        if not os.path.exists("SaveDirPath.json"):
-            with open("SaveDirPath.json" , "r+") as f:
-                data = js.load(f)
-                data["DirPath"] = f"{path}"
-                f.seek(0)  # rewind
-                js.dump(data, f)
-                f.truncate()
-        else:
-            with open("SaveDirPath.json" , "r+") as f:
-                data = js.load(f)
-                data["DirPath"] = f"{path}"
-                f.seek(0)  # rewind
-                js.dump(data, f)
-                f.truncate()
+        cfg = load_config()
+        cfg["DirPath"] = path
+        save_config(cfg)
     else:
-       FolderPathAnswer["text"] = "Current Folder Location"
+        FolderPathAnswer["text"] = "Current Folder Location"
 
 def GetData():
     # pb["value"] = 85
     StartingDate = year.get() + "-" + month.get() + "-" + day.get()
     EndingDate = Endyear.get() + "-" + Endmonth.get() + "-" + Endday.get()
 
-        
-
-    b = GBC.GetBhavCopy(StartingDate , EndingDate , FolderPathAnswer["text"] , pb , root)
+    b = GetBhavCopy(StartingDate , EndingDate , FolderPathAnswer["text"] , pb , root)
 
     returnValue = b.get_bhavcopy()
 
@@ -176,14 +180,17 @@ def GetData():
             Endmonth.set(currentDate.split("-")[1])
             Endyear.set(currentDate.split("-")[2])
     
-    #returnValue.to_csv("bhavcopy.csv", index=False)
-    with open("../SaveDirPath.json", "r") as f:
-        config_file = js.load(f)
+    #loading config for saved dir path
+    config_file = load_config()
 
     pb["value"] = 100
     root.update_idletasks()
 
-    returnValue.to_csv(f"{config_file['DirPath']}/{StartingDate}_{EndingDate}_bhavcopy.txt", sep="\t", index=False)
+    out_dir = Path(config_file["DirPath"])
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"{StartingDate}_{EndingDate}_bhavcopy.txt"
+    returnValue.to_csv(out_path, sep="\t", index=False)
+
     successBox = messagebox.showinfo("BhavCopy - Aric Kaji","✅ BhavCopy Data has been saved successfully") 
     if successBox:
         pb["value"] = 0
@@ -276,10 +283,8 @@ FolderPathButton.place(x=width-450, y=height-160)
 FolderPathAnswer = Label(rootFrame, font=("SF Pro", 12 , "bold"))
 FolderPathAnswer.place(x=width-350, y=height-160)
 
-with open("../SaveDirPath.json", "r") as f:
-    config_file = js.load(f)
-
-FolderPathAnswer["text"] = config_file["DirPath"]
+config_file = load_config() # Loading config for saved dir path
+FolderPathAnswer["text"] = config_file.get("DirPath", str(Path.cwd()))
 
 s = Style()
 s.theme_use("alt")
@@ -300,13 +305,5 @@ GetData.place(x=width-580, y=height-80)
 
 ExitBtn = Button(rootFrame, text="Exit", font=("SF Pro", 10 , "bold"), width=70 , relief=GROOVE , command=root.destroy , cursor="hand2")
 ExitBtn.place(x=width-580, y=height-50)
-
-# if not os.path.exists("SaveDirPath.json"):
-#     with open("SaveDirPath.json" , "w") as f:
-#         f.write('{"DirPath": "None"}')
-# else:
-#     with open("SaveDirPath.json" , "r") as f:
-#         fileData = js.load(f)
-#         FolderPathAnswer["text"] = fileData["DirPath"]
 
 root.mainloop()
