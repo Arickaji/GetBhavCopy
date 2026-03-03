@@ -1,11 +1,20 @@
 certifi==2025.7.14
 charset-normalizer==3.4.2
+-e git+https://github.com/Arickaji/GetBhavCopy.git@ba4c95e1b55809127b0097cc3260c16def0ac9db#egg=getbhavcopy
 idna==3.10
+iniconfig==2.3.0
 numpy==2.2.6
+packaging @ file:///opt/miniconda3/conda-bld/packaging_1761049079150/work
 pandas==2.3.1
+pluggy==1.6.0
+Pygments==2.19.2
+pytest==9.0.2
 python-dateutil==2.9.0.post0
 pytz==2025.2
 requests==2.32.4
+ruff==0.15.4
+setuptools==80.10.2
 six==1.17.0
 tzdata==2025.2
 urllib3==2.5.0
+wheel==0.46.3
