@@ -2,7 +2,7 @@ import requests
 import pandas as pd
 from io import StringIO
 from datetime import datetime, timedelta
-from typing import Optional, List, Tuple
+from typing import List
 class GetBhavCopy:
     def __init__(self , Start_date , End_date , SaveFolderName , ProgramBarValue , RootWindow):
         self.Start_date = Start_date
