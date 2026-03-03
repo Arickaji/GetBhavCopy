@@ -165,6 +165,14 @@ def GetData():
 
     returnValue = b.get_bhavcopy()
 
+    skipped = getattr(b, "failed_dates", [])
+    if skipped:
+        messagebox.showwarning(
+            "GetBhavCopy",
+            "Some dates were skipped (holiday/unavailable):\n" + "\n".join(skipped[:10]) +
+            ("" if len(skipped) <= 10 else f"\n...and {len(skipped)-10} more")
+        )
+
     pb["value"] = 90
     root.update_idletasks()
 
