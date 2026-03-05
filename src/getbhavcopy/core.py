@@ -2,7 +2,11 @@ import requests
 import pandas as pd
 from io import StringIO
 from datetime import datetime, timedelta
+import time
 from typing import List
+import logging
+
+logger = logging.getLogger("getbhavcopy")
 class GetBhavCopy:
     def __init__(self , Start_date , End_date , SaveFolderName , ProgramBarValue , RootWindow):
         self.Start_date = Start_date
@@ -66,8 +70,21 @@ class GetBhavCopy:
         url = f"https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{d.strftime('%d%m%Y')}.csv"
         headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://www.nseindia.com"}
 
-        r = requests.get(url, headers=headers, timeout=15)
-        text = self._validate_response_csv(r)
+        date_str = d.strftime("%Y-%m-%d")
+
+        for attempt in range(3):
+            try:
+                logger.debug(f"Attempt {attempt+1} fetching equity for {date_str}")
+                r = requests.get(url, headers=headers, timeout=15)
+                text = self._validate_response_csv(r)
+                logger.info(f"Equity data downloaded for {date_str}")
+                break
+            except Exception as e:
+                logger.warning(f"Attempt {attempt+1} failed for {date_str}: {str(e)}")
+                if attempt == 2:
+                    logger.error(f"Failed completely for {date_str}")
+                    raise
+                time.sleep(1)
 
         df = pd.read_csv(StringIO(text))
         df.columns = df.columns.str.strip().str.upper()
@@ -80,11 +97,16 @@ class GetBhavCopy:
             "TTL_TRD_QNTY": "VOLUME",
         })
 
-        df["DATE"] = d.strftime("%Y-%m-%d")
+        df["DATE"] = date_str
 
         return df[["SYMBOL", "DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]]
 
     def get_bhavcopy(self) -> pd.DataFrame:
+
+        start_time = time.time()
+        logger.info(f"Starting bhavcopy download process at {start_time}")
+        logger.info(f"Date range: {self.Start_date} to {self.End_date}")
+
         start = datetime.strptime(self.Start_date, "%Y-%m-%d")
         end = datetime.strptime(self.End_date, "%Y-%m-%d")
 
@@ -111,6 +133,9 @@ class GetBhavCopy:
             # progress: 0..90 while downloading, keep last 10% for UI saving
             self._progress(int((i - 1) / total * 90))
 
+            date_str = day.strftime("%Y-%m-%d")
+            logger.info(f"Processing {date_str}")
+
             try:
                 eq = self.get_equity_bhavcopy_for_date(day)
                 idx = self.get_nse_indices_data_for_date(day)
@@ -127,4 +152,14 @@ class GetBhavCopy:
 
         final_df = pd.concat(all_frames, ignore_index=True, sort=False)
         self._progress(90)
+
+        # complete bhavcopy logs
+        end_time = time.time()
+        logger.info("Download completed.")
+        logger.info(f"Total trading days: {len(dates)}")
+        logger.info(f"Successful days: {len(all_frames)}")
+        logger.info(f"Failed days: {len(failed_dates)}")
+        logger.info(f"Total rows collected: {len(final_df)}")
+        logger.info(f"Execution time: {round(end_time - start_time, 2)} seconds")
+
         return final_df[["SYMBOL", "DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]]
