@@ -1,4 +1,4 @@
-from tkinter import Label , Entry , Button, LabelFrame , Tk , StringVar , END , Frame , CENTER , GROOVE 
+from tkinter import Label , Entry , Button, LabelFrame , Tk , StringVar, Frame , CENTER , GROOVE 
 from datetime import datetime
 from tkinter import filedialog
 from tkinter import ttk
