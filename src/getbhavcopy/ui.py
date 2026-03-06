@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 from getbhavcopy.logging_config import setup_logging
 import logging
+import threading
 
 # Initialize logging ONCE here
 setup_logging(debug=True)
@@ -41,6 +42,11 @@ def get_config_path() -> Path:
     base = Path(appdata) / "GetBhavCopy" if appdata else Path.home() / ".getbhavcopy"
     base.mkdir(parents=True, exist_ok=True)
     return base / "SaveDirPath.json"
+
+def start_download():
+    thread = threading.Thread(target=handle_get_data)
+    thread.daemon = True
+    thread.start()
 
 def load_config() -> dict:
     path = get_config_path()
@@ -379,7 +385,7 @@ pb.pack(in_=main, fill="x", pady=10)
 button_frame = Frame(main, bg="#1e1e1e")
 button_frame.pack(fill="x")
 
-GetDataBtn = Button(button_frame, text="Get Data", font=("SF Pro", 10 , "bold"), width=20 , relief=GROOVE , command=handle_get_data)
+GetDataBtn = Button(button_frame, text="Get Data", font=("SF Pro", 10 , "bold"), width=20 , relief=GROOVE , command=start_download)
 #GetDataBtn.place(x=width-580, y=height-80)
 GetDataBtn.config(
     font=("SF Pro", 12, "bold"),
