@@ -201,7 +201,14 @@ def handle_get_data():
     out_dir = Path(config_file["DirPath"])
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{StartingDate}_{EndingDate}_bhavcopy.txt"
-    returnValue.to_csv(out_path, sep="\t", index=False)
+    
+    fmt = format_var.get()
+    if fmt == "CSV":
+        out_path = out_dir / f"{StartingDate}_{EndingDate}_bhavcopy.csv"
+        returnValue.to_csv(out_path, index=False)
+    else:
+        out_path = out_dir / f"{StartingDate}_{EndingDate}_bhavcopy.txt"
+        returnValue.to_csv(out_path, sep="\t", index=False)
 
     successBox = messagebox.showinfo("BhavCopy - Aric Kaji","✅ BhavCopy Data has been saved successfully") 
     if successBox:
@@ -354,8 +361,19 @@ FolderPathButton = Button(folder_frame, bg="#1e1e1e", text="Select Folder", font
 FolderPathAnswer = Label(folder_frame, font=("SF Pro", 12 , "bold"), bg="#1e1e1e")
 #FolderPathAnswer.place(x=width-350, y=height-160)
 
+format_var = StringVar(value="TXT")
+format_dropdown = ttk.Combobox(
+    folder_frame,
+    textvariable=format_var,
+    font=("SF Pro", 12, "bold"),
+    values=["TXT", "CSV"],
+    width=4,
+    state="readonly"
+)
+
 FolderPathButton.grid(in_=folder_frame, row=0, column=0, padx=5, pady=5)
 FolderPathAnswer.grid(in_=folder_frame, row=0, column=1, sticky="w")
+format_dropdown.grid(in_=folder_frame,row=0, column=2, padx=20)
 
 config_file = load_config() # Loading config for saved dir path
 FolderPathAnswer["text"] = config_file.get("DirPath", str(Path.cwd()))
