@@ -1,3 +1,5 @@
+import platform
+import subprocess
 from tkinter import Label , Entry , Button, LabelFrame , Tk , StringVar, Frame , CENTER , GROOVE 
 from datetime import datetime
 from tkinter import filedialog
@@ -213,6 +215,26 @@ def handle_get_data():
     successBox = messagebox.showinfo("BhavCopy - Aric Kaji","✅ BhavCopy Data has been saved successfully") 
     if successBox:
         pb["value"] = 0
+
+        ask_open_file = messagebox.askyesnocancel(
+            "BhavCopy - Aric Kaji",
+            "Do you want to open the downloaded file?"
+        )
+
+        if ask_open_file:
+            try:
+                folder = out_path.parent
+                if platform.system() == "Windows":
+                    os.startfile(folder)
+
+                elif platform.system() == "Darwin":  # macOS
+                    subprocess.call(["open", folder])
+
+                else:  # Linux
+                    subprocess.call(["xdg-open", folder])
+
+            except Exception as e:
+                logger.error(f"Could not open file automatically: {e}")
 
     status_label_var.set("Status: Completed")
     GetDataBtn.config(state="normal")
