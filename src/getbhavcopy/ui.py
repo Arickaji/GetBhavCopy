@@ -159,7 +159,7 @@ def handle_get_data():
 
     GetDataBtn.config(state="disabled")
 
-    status_var.set("Status: Downloading data...")
+    status_label_var.set("Status: Downloading data...")
     root.update_idletasks()
 
     StartingDate = year.get() + "-" + month.get() + "-" + day.get()
@@ -207,7 +207,7 @@ def handle_get_data():
     if successBox:
         pb["value"] = 0
 
-    status_var.set("Status: Completed")
+    status_label_var.set("Status: Completed")
     GetDataBtn.config(state="normal")
 
 root = Tk()
@@ -445,19 +445,19 @@ log_box.config(
 )
 
 
-status_var = StringVar()
-status_var.set("Status: Ready")
+status_label_var = StringVar()
+status_label_var.set("Status: Ready")
 
-status_bar = Label(
-    root,
-    textvariable=status_var,
-    bg="#2b2b2b",
+status_bar_label = Label(
+    main,
+    textvariable=status_label_var,
+    bg="#1e1e1e",
     fg="white",
-    anchor="w",
-    font=("SF Pro", 10)
+    anchor="center",
+    font=("SF Pro", 13)
 )
 
-status_bar.pack(fill="x", side="bottom")
+status_bar_label.pack(fill="x", side="bottom")
 
 # ===== CONNECT LOGGER TO UI =====
 logger = logging.getLogger("getbhavcopy")
