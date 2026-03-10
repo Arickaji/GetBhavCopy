@@ -167,6 +167,8 @@ def handle_get_data():
     StartingDate = year.get() + "-" + month.get() + "-" + day.get()
     EndingDate = Endyear.get() + "-" + Endmonth.get() + "-" + Endday.get()
 
+    logger.info(f"User requested download: {StartingDate} -> {EndingDate}")
+
     b = GetBhavCopy(StartingDate , EndingDate , FolderPathAnswer["text"] , pb , root)
 
     returnValue = b.get_bhavcopy()
