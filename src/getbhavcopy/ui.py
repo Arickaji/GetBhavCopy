@@ -171,7 +171,33 @@ def handle_get_data():
 
     b = GetBhavCopy(StartingDate , EndingDate , FolderPathAnswer["text"] , pb , root)
 
-    returnValue = b.get_bhavcopy()
+
+    try:
+        returnValue = b.get_bhavcopy()
+
+    except ValueError as e:
+        logger.warning(f"User input error: {e}")
+
+        messagebox.showwarning(
+            "Invalid Input",
+            str(e)
+        )
+
+        GetDataBtn.config(state="normal")
+        status_label_var.set("Status: Download Failed..")
+        return
+
+    except Exception:
+        logger.exception("Unexpected download error")
+
+        messagebox.showerror(
+            "Download Failed",
+            "Something went wrong while downloading the data.\n\nPlease check the log file for details."
+        )
+
+        GetDataBtn.config(state="normal")
+        status_label_var.set("Status: Download Failed..")
+        return
 
     skipped = getattr(b, "failed_dates", [])
     if skipped:
