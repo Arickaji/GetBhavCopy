@@ -28,5 +28,5 @@ jobs:
       - name: Code quality check - Lint (ruff)
         run: ruff check .
 
-      - name: Tests
-        run: pytest -q
+      - name: Run tests with coverage
+        run: pytest --cov=getbhavcopy --cov-report=term

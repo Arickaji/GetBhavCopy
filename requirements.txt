@@ -1,6 +1,7 @@
 certifi==2025.7.14
 charset-normalizer==3.4.2
--e git+https://github.com/Arickaji/GetBhavCopy.git@ba4c95e1b55809127b0097cc3260c16def0ac9db#egg=getbhavcopy
+coverage==7.13.4
+-e git+https://github.com/Arickaji/GetBhavCopy.git@512509c10c265f13ffdc449c9835fb4bc4fdb1f9#egg=getbhavcopy
 idna==3.10
 iniconfig==2.3.0
 numpy==2.2.6
@@ -9,6 +10,7 @@ pandas==2.3.1
 pluggy==1.6.0
 Pygments==2.19.2
 pytest==9.0.2
+pytest-cov==7.0.0
 python-dateutil==2.9.0.post0
 pytz==2025.2
 requests==2.32.4
