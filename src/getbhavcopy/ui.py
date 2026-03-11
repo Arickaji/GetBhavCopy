@@ -187,7 +187,7 @@ def handle_get_data():
         status_label_var.set("Status: Download Failed..")
         return
 
-    except Exception as e:
+    except Exception:
         logger.exception("Unexpected download error")
 
         messagebox.showerror(
