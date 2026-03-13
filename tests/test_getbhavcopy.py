@@ -1,6 +1,6 @@
-import pytest
 from unittest.mock import patch
 
+import pytest
 from getbhavcopy.core import GetBhavCopy
 
 
@@ -26,7 +26,8 @@ def fake_requests_get(url, headers=None, timeout=15):
     if "ind_close_all" in url:
         # Fake index CSV
         return FakeResponse(
-            "INDEX NAME,OPEN INDEX VALUE,HIGH INDEX VALUE,LOW INDEX VALUE,CLOSING INDEX VALUE,VOLUME\n"
+            """INDEX NAME,OPEN INDEX VALUE,HIGH INDEX VALUE,
+                LOW INDEX VALUE,CLOSING INDEX VALUE,VOLUME\n"""
             "NIFTY 50,20000,20200,19800,20100,5000\n"
         )
 
@@ -44,7 +45,15 @@ def test_get_bhavcopy_returns_expected_schema(_mock_get):
     b = GetBhavCopy("2026-02-13", "2026-02-13", "DATA", None, None)
     df = b.get_bhavcopy()
 
-    assert list(df.columns) == ["SYMBOL", "DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]
+    assert list(df.columns) == [
+        "SYMBOL",
+        "DATE",
+        "OPEN",
+        "HIGH",
+        "LOW",
+        "CLOSE",
+        "VOLUME",
+    ]
     assert len(df) == 2  # 1 equity row + 1 index row
     assert set(df["SYMBOL"]) == {"RELIANCE", "NIFTY 50"}
     assert df["DATE"].unique().tolist() == ["2026-02-13"]
