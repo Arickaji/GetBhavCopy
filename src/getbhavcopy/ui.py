@@ -22,6 +22,7 @@ from tkinter import (
 )
 from tkinter.scrolledtext import ScrolledText
 from tkinter.ttk import Style
+from typing import Any
 
 from getbhavcopy.core import GetBhavCopy
 from getbhavcopy.logging_config import setup_logging
@@ -65,7 +66,7 @@ def start_download():
     thread.start()
 
 
-def load_config() -> dict:
+def load_config() -> Any:
     path = get_config_path()
     if not path.exists():
         default = {"DirPath": str(Path.cwd())}
@@ -309,7 +310,7 @@ x = (screen_width / 2) - (width / 2)
 y = (screen_height / 2) - (height / 2)
 
 root.geometry("%dx%d+%d+%d" % (width + 3, height, x, y))
-root.resizable(0, 0)
+root.resizable(False, False)
 
 # ================= MAIN CONTAINER =================
 main = Frame(root, bg="#1e1e1e", width=width, height=height)
@@ -359,7 +360,7 @@ currentDate = datetime.today().strftime("%d-%m-%Y")
 day = StringVar()  # date
 day.trace("w", limitSizeDay)
 day_entry = Entry(
-    start_frame, textvar=day, width=4, font=("SF Pro", 12, "bold"), justify=CENTER
+    start_frame, textvariable=day, width=4, font=("SF Pro", 12, "bold"), justify=CENTER
 )
 # day_entry.place(x=width-480, y=height-207)
 day.set(currentDate.split("-")[0])
@@ -367,7 +368,11 @@ day.set(currentDate.split("-")[0])
 month = StringVar()  # month
 month.trace("w", limitSizeMonth)
 month_entry = Entry(
-    start_frame, textvar=month, width=4, font=("SF Pro", 12, "bold"), justify=CENTER
+    start_frame,
+    textvariable=month,
+    width=4,
+    font=("SF Pro", 12, "bold"),
+    justify=CENTER,
 )
 # month_entry.place(x=width-440, y=height-207)
 month.set(currentDate.split("-")[1])
@@ -375,7 +380,7 @@ month.set(currentDate.split("-")[1])
 year = StringVar()  # year
 year.trace("w", limitSizeYear)
 year_entry = Entry(
-    start_frame, textvar=year, width=6, font=("SF Pro", 12, "bold"), justify=CENTER
+    start_frame, textvariable=year, width=6, font=("SF Pro", 12, "bold"), justify=CENTER
 )
 # year_entry.place(x=width-400, y=height-207)
 # year_entry.bind("<Return>" , GetData)
@@ -394,7 +399,7 @@ Label(end_frame, text="End Date", bg="#1e1e1e", fg="white").pack(pady=5)
 Endday = StringVar()  # date
 Endday.trace("w", EndlimitSizeDay)
 Endday_entry = Entry(
-    end_frame, textvar=Endday, width=4, font=("SF Pro", 12, "bold"), justify=CENTER
+    end_frame, textvariable=Endday, width=4, font=("SF Pro", 12, "bold"), justify=CENTER
 )
 # Endday_entry.place(x=width-205, y=height-207)
 Endday.set(currentDate.split("-")[0])
@@ -402,7 +407,11 @@ Endday.set(currentDate.split("-")[0])
 Endmonth = StringVar()  # month
 Endmonth.trace("w", EndlimitSizeMonth)
 Endmonth_entry = Entry(
-    end_frame, textvar=Endmonth, width=4, font=("SF Pro", 12, "bold"), justify=CENTER
+    end_frame,
+    textvariable=Endmonth,
+    width=4,
+    font=("SF Pro", 12, "bold"),
+    justify=CENTER,
 )
 # Endmonth_entry.place(x=width-165, y=height-207)
 Endmonth.set(currentDate.split("-")[1])
@@ -410,7 +419,11 @@ Endmonth.set(currentDate.split("-")[1])
 Endyear = StringVar()  # year
 Endyear.trace("w", EndlimitSizeYear)
 Endyear_entry = Entry(
-    end_frame, textvar=Endyear, width=6, font=("SF Pro", 12, "bold"), justify=CENTER
+    end_frame,
+    textvariable=Endyear,
+    width=6,
+    font=("SF Pro", 12, "bold"),
+    justify=CENTER,
 )
 # Endyear_entry.place(x=width-125, y=height-207)
 Endyear.set(currentDate.split("-")[2])
