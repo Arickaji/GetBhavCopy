@@ -4,7 +4,7 @@ charset-normalizer==3.4.2
 coverage==7.13.4
 distlib==0.4.0
 filelock==3.25.1
--e git+https://github.com/Arickaji/GetBhavCopy.git@84856daab13623a7262efb6280e12a942e7b21b6#egg=getbhavcopy
+-e git+https://github.com/Arickaji/GetBhavCopy.git@7e9a5e83eaacc0a8e88a8a6138158dfe117d7220#egg=getbhavcopy
 identify==2.6.17
 idna==3.10
 iniconfig==2.3.0
