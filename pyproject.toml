@@ -26,3 +26,9 @@ target-version = ["py311"]
 line-length = 88
 select = ["E", "F", "W", "I"]
 fix = true
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+warn_return_any = false
+strict_optional = false
