@@ -9,6 +9,7 @@ description = "GetBhavCopy downloader (NSE equity + indices)"
 requires-python = ">=3.10"
 dependencies = [
   "requests",
+  "types-requests",
   "pandas",
 ]
 
