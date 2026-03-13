@@ -26,9 +26,8 @@ def fake_requests_get(url, headers=None, timeout=15):
     if "ind_close_all" in url:
         # Fake index CSV
         return FakeResponse(
-            """INDEX NAME,OPEN INDEX VALUE,HIGH INDEX VALUE,
-                LOW INDEX VALUE,CLOSING INDEX VALUE,VOLUME\n"""
-            "NIFTY 50,20000,20200,19800,20100,5000\n"
+            "SYMBOL,DATE,OPEN,HIGH,LOW,CLOSE,VOLUME\n"
+            "NIFTY 50,2026-02-13,20000,20200,19800,20100,5000\n"
         )
 
     return FakeResponse("", status_code=404)
