@@ -1,7 +1,8 @@
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-import os
+
 
 def setup_logging(debug: bool = False):
     logger = logging.getLogger("getbhavcopy")
@@ -22,11 +23,7 @@ def setup_logging(debug: bool = False):
     log_file_path = log_dir / "getbhavcopy.log"
 
     # Rotating file handler
-    file_handler = RotatingFileHandler(
-        log_file_path,
-        maxBytes=5_000_000,
-        backupCount=3
-    )
+    file_handler = RotatingFileHandler(log_file_path, maxBytes=5_000_000, backupCount=3)
     file_handler.setFormatter(formatter)
     file_handler.setLevel(logging.DEBUG)
 
