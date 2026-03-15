@@ -234,18 +234,6 @@ def handle_get_data():
     pb["value"] = 90
     root.update_idletasks()
 
-    if returnValue.empty:
-        msgBox = messagebox.showerror("GetBhavCopy", "No Data Downloaded")
-        if msgBox:
-            pb["value"] = 0
-            currentDate = datetime.today().strftime("%d-%m-%Y")
-            day.set(currentDate.split("-")[0])
-            month.set(currentDate.split("-")[1])
-            year.set(currentDate.split("-")[2])
-            Endday.set(currentDate.split("-")[0])
-            Endmonth.set(currentDate.split("-")[1])
-            Endyear.set(currentDate.split("-")[2])
-
     # loading config for saved dir path
     config_file = load_config()
 
