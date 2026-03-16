@@ -34,14 +34,14 @@ def fake_requests_get(url, headers=None, timeout=15):
 
 
 def test_start_date_after_end_date_raises():
-    b = GetBhavCopy("2026-02-10", "2026-02-01", "DATA", None, None)
+    b = GetBhavCopy("2026-02-10", "2026-02-01", "DATA", "", "")
     with pytest.raises(ValueError):
         b.get_bhavcopy()
 
 
 @patch("getbhavcopy.core.requests.get", side_effect=fake_requests_get)
 def test_get_bhavcopy_returns_expected_schema(_mock_get):
-    b = GetBhavCopy("2026-02-13", "2026-02-13", "DATA", None, None)
+    b = GetBhavCopy("2026-02-13", "2026-02-13", "DATA", "", "")
     df = b.get_bhavcopy()
 
     assert list(df.columns) == [
@@ -60,6 +60,6 @@ def test_get_bhavcopy_returns_expected_schema(_mock_get):
 
 @patch("getbhavcopy.core.requests.get", return_value=FakeResp("nope", 404))
 def test_404_raises_value_error(_mock_get):
-    b = GetBhavCopy("2026-02-13", "2026-02-13", "DATA", None, None)
+    b = GetBhavCopy("2026-02-13", "2026-02-13", "DATA", "", "")
     df = b.get_bhavcopy()
     assert df.empty

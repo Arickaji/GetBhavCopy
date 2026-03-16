@@ -28,13 +28,15 @@ line-length = 88
 fix = true
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I"]
+select = ["E", "F", "W", "I", "UP"]
 
 [tool.mypy]
 python_version = "3.12"
-ignore_missing_imports = true
-warn_return_any = false
-strict_optional = false
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+mypy_path = "src"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

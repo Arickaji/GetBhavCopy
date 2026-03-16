@@ -15,6 +15,13 @@ repos:
   rev: v1.10.0
   hooks:
     - id: mypy
+      args:
+        - --check-untyped-defs
+        - --explicit-package-bases
+      additional_dependencies:
+        - types-requests
+        - pandas-stubs
+        - pytest
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.6.0
