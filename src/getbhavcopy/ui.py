@@ -421,9 +421,7 @@ Endmonth_entry.pack(in_=end_frame, side="left", padx=5)
 Endyear_entry.pack(in_=end_frame, side="left", padx=5)
 
 # ================= FOLDER FRAME =================
-folder_frame = LabelFrame(
-    main, text=" Output Folder ", font=("SF Pro", 12, "bold"), fg="white", bg="#1e1e1e"
-)
+folder_frame = LabelFrame(main, text=" Output Folder ", font=("SF Pro", 12, "bold"))
 folder_frame.pack(fill="x", pady=5)
 
 folder_frame.columnconfigure(1, weight=1)
@@ -433,14 +431,13 @@ FolderPathLabel = Label(folder_frame, text="Folder Path :", font=("SF Pro", 14))
 
 FolderPathButton = Button(
     folder_frame,
-    bg="#1e1e1e",
     text="Select Folder",
     font=("SF Pro", 10),
     command=GetFolderPath,
 )
 # FolderPathButton.place(x=width-450, y=height-160)
 
-FolderPathAnswer = Label(folder_frame, font=("SF Pro", 12, "bold"), bg="#1e1e1e")
+FolderPathAnswer = Label(folder_frame, font=("SF Pro", 12, "bold"))
 # FolderPathAnswer.place(x=width-350, y=height-160)
 
 format_var = StringVar(value="TXT")
@@ -477,7 +474,7 @@ pb = ttk.Progressbar(
 pb.pack(in_=main, fill="x", pady=10)
 
 # ================= BUTTON FRAME =================
-button_frame = Frame(main, bg="#1e1e1e")
+button_frame = Frame(main)
 button_frame.pack(fill="x")
 
 GetDataBtn = Button(
