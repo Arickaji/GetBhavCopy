@@ -32,7 +32,6 @@ setup_logging(debug=True)
 
 
 class TkinterLogHandler(logging.Handler):
-
     def __init__(self, text_widget):
         super().__init__()
         self.text_widget = text_widget
@@ -211,11 +210,9 @@ def handle_get_data():
     )
 
     try:
-
         b.get_bhavcopy()
 
     except ValueError as e:
-
         logger.warning(f"User input error: {e}")
 
         messagebox.showwarning("Invalid Input", str(e))
@@ -225,7 +222,6 @@ def handle_get_data():
         return
 
     except Exception:
-
         logger.exception("Unexpected download error")
 
         messagebox.showerror(
@@ -256,7 +252,6 @@ def handle_get_data():
     )
 
     if successBox:
-
         pb["value"] = 0
 
         ask_open_folder = messagebox.askyesno(
@@ -287,7 +282,7 @@ screen_height = root.winfo_screenheight()  # Height of the screen
 x = (screen_width / 2) - (width / 2)
 y = (screen_height / 2) - (height / 2)
 
-root.geometry("%dx%d+%d+%d" % (width + 3, height, x, y))
+root.geometry(f"{width + 3}x{height}+{x}+{y}")
 root.resizable(False, False)
 
 # ================= MAIN CONTAINER =================

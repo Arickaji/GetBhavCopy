@@ -12,7 +12,6 @@ logger = logging.getLogger("getbhavcopy")
 
 
 class GetBhavCopy:
-
     def __init__(
         self,
         Start_date,
@@ -69,9 +68,7 @@ class GetBhavCopy:
         date_str = d.strftime("%Y%m%d")
 
         for attempt in range(3):
-
             try:
-
                 r = self.session.get(url, timeout=15)
 
                 text = self._validate_response_csv(r)
@@ -79,7 +76,6 @@ class GetBhavCopy:
                 break
 
             except Exception:
-
                 if attempt == 2:
                     raise
 
@@ -147,13 +143,11 @@ class GetBhavCopy:
         )
 
         if os.path.exists(file_path):
-
             logger.info(f"Skipping existing {date_str}")
 
             return "skipped"
 
         try:
-
             eq = self.get_equity_bhavcopy_for_date(day)
 
             idx = self.get_nse_indices_data_for_date(day)
@@ -167,7 +161,6 @@ class GetBhavCopy:
             return "success"
 
         except Exception as e:
-
             logger.warning(f"Failed {date_str} : {str(e)}")
 
             return "failed"
@@ -191,7 +184,6 @@ class GetBhavCopy:
         d = start
 
         while d <= end:
-
             if d.weekday() < 5:
                 dates.append(d)
 
@@ -204,11 +196,9 @@ class GetBhavCopy:
         completed = 0
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-
             futures = {executor.submit(self.process_day, day): day for day in dates}
 
             for future in as_completed(futures):
-
                 day = futures[future]
 
                 result = future.result()
