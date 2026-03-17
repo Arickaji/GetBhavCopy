@@ -1,8 +1,9 @@
 import logging
+import os
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from io import StringIO
-from typing import List
 
 import pandas as pd
 import requests
@@ -12,77 +13,76 @@ logger = logging.getLogger("getbhavcopy")
 
 class GetBhavCopy:
     def __init__(
-        self, Start_date, End_date, SaveFolderName, ProgramBarValue, RootWindow
+        self,
+        Start_date,
+        End_date,
+        SaveFolderName,
+        Output_File_Formate: str,
+        ProgramBarValue=None,
+        RootWindow=None,
+        max_workers=8,
     ):
+
         self.Start_date = Start_date
         self.End_date = End_date
         self.SaveFolderName = SaveFolderName
         self.ProgramBarValue = ProgramBarValue
+        self.Output_File_Formate = Output_File_Formate
         self.rootWindow = RootWindow
+        self.max_workers = max_workers
 
-    def _validate_response_csv(self, r) -> str:
-        if r.status_code != 200:
-            raise ValueError("Bhavcopy not available (holiday or invalid date)")
-        text = (r.text or "").strip()
-        if "\n" not in text:
-            raise ValueError("Bhavcopy not available (holiday or invalid date)")
-        return text
+        self.failed_dates: list[str] = []
 
-    def _progress(self, value: int) -> None:
-        if self.ProgramBarValue is not None:
-            self.ProgramBarValue["value"] = value
-        if self.rootWindow is not None:
-            self.rootWindow.update_idletasks()
-
-    def get_nse_indices_data_for_date(self, d: datetime) -> pd.DataFrame:
-        url = f"https://nsearchives.nseindia.com/content/indices/ind_close_all_{d.strftime('%d%m%Y')}.csv"
-
-        headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://www.nseindia.com"}
-
-        r = requests.get(url, headers=headers, timeout=15)
-        text = self._validate_response_csv(r)
-
-        df = pd.read_csv(StringIO(text))
-        df.columns = df.columns.str.strip().str.upper()
-
-        df = df.rename(
-            columns={
-                "INDEX NAME": "SYMBOL",
-                "INDEX DATE": "DATE",
-                "OPEN INDEX VALUE": "OPEN",
-                "HIGH INDEX VALUE": "HIGH",
-                "LOW INDEX VALUE": "LOW",
-                "CLOSING INDEX VALUE": "CLOSE",
-                "VOLUME": "VOLUME",
+        self.session = requests.Session()
+        self.session.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0",
+                "Referer": "https://www.nseindia.com",
             }
         )
 
-        # DATE comes from URL — safest
-        df["DATE"] = d.strftime("%Y-%m-%d")
+    def _validate_response_csv(self, r):
 
-        return df[["SYMBOL", "DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]]
+        if r.status_code != 200:
+            raise ValueError("Bhavcopy not available")
 
-    def get_equity_bhavcopy_for_date(self, d: datetime) -> pd.DataFrame:
+        text = (r.text or "").strip()
+
+        if "\n" not in text:
+            raise ValueError("Invalid CSV")
+
+        return text
+
+    def _progress(self, value):
+
+        if self.ProgramBarValue is not None:
+            self.ProgramBarValue["value"] = value
+
+        if self.rootWindow is not None:
+            self.rootWindow.update_idletasks()
+
+    def get_equity_bhavcopy_for_date(self, d):
+
         url = f"https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{d.strftime('%d%m%Y')}.csv"
-        headers = {"User-Agent": "Mozilla/5.0", "Referer": "https://www.nseindia.com"}
 
-        date_str = d.strftime("%Y-%m-%d")
+        date_str = d.strftime("%Y%m%d")
 
         for attempt in range(3):
             try:
-                logger.debug(f"Attempt {attempt+1} fetching equity for {date_str}")
-                r = requests.get(url, headers=headers, timeout=15)
+                r = self.session.get(url, timeout=15)
+
                 text = self._validate_response_csv(r)
-                logger.info(f"Equity data downloaded for {date_str}")
+
                 break
-            except Exception as e:
-                logger.warning(f"Attempt {attempt+1} failed for {date_str}: {str(e)}")
+
+            except Exception:
                 if attempt == 2:
-                    logger.error(f"Failed completely for {date_str}")
                     raise
-                time.sleep(1)
+
+                time.sleep(1 + attempt)
 
         df = pd.read_csv(StringIO(text))
+
         df.columns = df.columns.str.strip().str.upper()
 
         df = df.rename(
@@ -99,11 +99,77 @@ class GetBhavCopy:
 
         return df[["SYMBOL", "DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]]
 
-    def get_bhavcopy(self) -> pd.DataFrame:
+    def get_nse_indices_data_for_date(self, d):
+
+        url = f"https://nsearchives.nseindia.com/content/indices/ind_close_all_{d.strftime('%d%m%Y')}.csv"
+
+        date_str = d.strftime("%Y%m%d")
+
+        r = self.session.get(url, timeout=15)
+
+        text = self._validate_response_csv(r)
+
+        df = pd.read_csv(StringIO(text))
+
+        df.columns = df.columns.str.strip().str.upper()
+
+        df = df.rename(
+            columns={
+                "INDEX NAME": "SYMBOL",
+                "INDEX DATE": "DATE",
+                "OPEN INDEX VALUE": "OPEN",
+                "HIGH INDEX VALUE": "HIGH",
+                "LOW INDEX VALUE": "LOW",
+                "CLOSING INDEX VALUE": "CLOSE",
+                "VOLUME": "VOLUME",
+            }
+        )
+
+        df["DATE"] = date_str
+
+        return df[["SYMBOL", "DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]]
+
+    def process_day(self, day):
+
+        date_str = day.strftime("%Y-%m-%d")
+
+        file_path = os.path.join(
+            self.SaveFolderName,
+            (
+                f"bhavcopy_{date_str}.csv"
+                if self.Output_File_Formate == "CSV"
+                else f"bhavcopy_{date_str}.txt"
+            ),
+        )
+
+        if os.path.exists(file_path):
+            logger.info(f"Skipping existing {date_str}")
+
+            return "skipped"
+
+        try:
+            eq = self.get_equity_bhavcopy_for_date(day)
+
+            idx = self.get_nse_indices_data_for_date(day)
+
+            final_df = pd.concat([eq, idx], ignore_index=True)
+
+            final_df.to_csv(file_path, index=False, header=False)
+
+            logger.info(f"Saved {file_path}")
+
+            return "success"
+
+        except Exception as e:
+            logger.warning(f"Failed {date_str} : {str(e)}")
+
+            return "failed"
+
+    def get_bhavcopy(self):
 
         start_time = time.time()
-        logger.info(f"Starting bhavcopy download process at {start_time}")
-        logger.info(f"Date range: {self.Start_date} to {self.End_date}")
+
+        logger.info("Starting Bhavcopy download")
 
         start = datetime.strptime(self.Start_date, "%Y-%m-%d")
         end = datetime.strptime(self.End_date, "%Y-%m-%d")
@@ -111,57 +177,44 @@ class GetBhavCopy:
         if start > end:
             raise ValueError("Start date must be before end date")
 
-        # Build list of weekdays in range (Mon-Fri)
-        dates: List[datetime] = []
+        os.makedirs(self.SaveFolderName, exist_ok=True)
+
+        dates: list[datetime] = []
+
         d = start
+
         while d <= end:
-            if d.weekday() < 5:  # 0=Mon ... 4=Fri
+            if d.weekday() < 5:
                 dates.append(d)
+
             d += timedelta(days=1)
 
-        if not dates:
-            # Range contains only weekends
-            return pd.DataFrame(
-                columns=["SYMBOL", "DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]
-            )
-
-        all_frames: List[pd.DataFrame] = []
-        failed_dates: List[str] = []
-
         total = len(dates)
-        for i, day in enumerate(dates, start=1):
-            # progress: 0..90 while downloading, keep last 10% for UI saving
-            self._progress(int((i - 1) / total * 90))
 
-            date_str = day.strftime("%Y-%m-%d")
-            logger.info(f"Processing {date_str}")
+        logger.info(f"Trading days to process: {total}")
 
-            try:
-                eq = self.get_equity_bhavcopy_for_date(day)
-                idx = self.get_nse_indices_data_for_date(day)
-                all_frames.append(pd.concat([eq, idx], ignore_index=True, sort=False))
-            except Exception:
-                # Skip missing/blocked days (holiday/invalid date/403/etc.)
-                failed_dates.append(day.strftime("%Y-%m-%d"))
-                continue
+        completed = 0
 
-        self.failed_dates = failed_dates  # optional: lets UI show “skipped dates”
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            futures = {executor.submit(self.process_day, day): day for day in dates}
 
-        if not all_frames:
-            return pd.DataFrame(
-                columns=["SYMBOL", "DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]
-            )
+            for future in as_completed(futures):
+                day = futures[future]
 
-        final_df = pd.concat(all_frames, ignore_index=True, sort=False)
-        self._progress(90)
+                result = future.result()
 
-        # complete bhavcopy logs
+                if result == "failed":
+                    self.failed_dates.append(day.strftime("%Y-%m-%d"))
+
+                completed += 1
+
+                progress = int((completed / total) * 90)
+
+                self._progress(progress)
+
         end_time = time.time()
-        logger.info("Download completed.")
-        logger.info(f"Total trading days: {len(dates)}")
-        logger.info(f"Successful days: {len(all_frames)}")
-        logger.info(f"Failed days: {len(failed_dates)}")
-        logger.info(f"Total rows collected: {len(final_df)}")
-        logger.info(f"Execution time: {round(end_time - start_time, 2)} seconds")
 
-        return final_df[["SYMBOL", "DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]]
+        logger.info("Download completed")
+        logger.info(f"Total trading days: {total}")
+        logger.info(f"Failed days: {len(self.failed_dates)}")
+        logger.info(f"Execution time: {round(end_time - start_time, 2)} seconds")

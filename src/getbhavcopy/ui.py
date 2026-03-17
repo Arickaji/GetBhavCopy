@@ -1,8 +1,8 @@
 import json as js
 import logging
 import os
-import platform
 import subprocess
+import sys
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -32,7 +32,6 @@ setup_logging(debug=True)
 
 
 class TkinterLogHandler(logging.Handler):
-
     def __init__(self, text_widget):
         super().__init__()
         self.text_widget = text_widget
@@ -182,8 +181,19 @@ def clear_logs():
     log_box.delete("1.0", "end")
 
 
+def open_folder(path: Path) -> None:
+    try:
+        if sys.platform.startswith("win"):
+            os.startfile(path)  # type: ignore[attr-defined]
+        elif sys.platform == "darwin":
+            subprocess.call(["open", str(path)])
+        else:
+            subprocess.call(["xdg-open", str(path)])
+    except Exception as e:
+        logger.error(f"Could not open folder automatically: {e}")
+
+
 def handle_get_data():
-    # pb["value"] = 85
 
     GetDataBtn.config(state="disabled")
 
@@ -195,10 +205,12 @@ def handle_get_data():
 
     logger.info(f"User requested download: {StartingDate} -> {EndingDate}")
 
-    b = GetBhavCopy(StartingDate, EndingDate, FolderPathAnswer["text"], pb, root)
+    b = GetBhavCopy(
+        StartingDate, EndingDate, FolderPathAnswer["text"], format_var.get(), pb, root
+    )
 
     try:
-        returnValue = b.get_bhavcopy()
+        b.get_bhavcopy()
 
     except ValueError as e:
         logger.warning(f"User input error: {e}")
@@ -206,7 +218,7 @@ def handle_get_data():
         messagebox.showwarning("Invalid Input", str(e))
 
         GetDataBtn.config(state="normal")
-        status_label_var.set("Status: Download Failed..")
+        status_label_var.set("Status: Download Failed")
         return
 
     except Exception:
@@ -215,67 +227,40 @@ def handle_get_data():
         messagebox.showerror(
             "Download Failed",
             """Something went wrong while downloading the data.
-                \n\nPlease check the log file for details.""",
+            \nPlease check the logs.""",
         )
 
         GetDataBtn.config(state="normal")
-        status_label_var.set("Status: Download Failed..")
+        status_label_var.set("Status: Download Failed")
         return
 
     skipped = getattr(b, "failed_dates", [])
-    if skipped:
-        messagebox.showwarning(
-            "GetBhavCopy",
-            "Some dates were skipped (holiday/unavailable):\n"
-            + "\n".join(skipped[:10])
-            + ("" if len(skipped) <= 10 else f"\n...and {len(skipped)-10} more"),
-        )
-
-    pb["value"] = 90
-    root.update_idletasks()
-
-    # loading config for saved dir path
-    config_file = load_config()
 
     pb["value"] = 100
     root.update_idletasks()
 
-    out_dir = Path(config_file["DirPath"])
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f"{StartingDate}_{EndingDate}_bhavcopy.txt"
+    out_dir = Path(FolderPathAnswer["text"])
 
-    fmt = format_var.get()
-    if fmt == "CSV":
-        out_path = out_dir / f"{StartingDate}_{EndingDate}_bhavcopy.csv"
-        returnValue.to_csv(out_path, index=False)
-    else:
-        out_path = out_dir / f"{StartingDate}_{EndingDate}_bhavcopy.txt"
-        returnValue.to_csv(out_path, sep="\t", index=False)
+    message = "✅ BhavCopy files downloaded successfully."
+
+    if skipped:
+        message += f"\n\nSkipped dates (holiday/unavailable): {len(skipped)}"
 
     successBox = messagebox.showinfo(
-        "BhavCopy - Aric Kaji", "✅ BhavCopy Data has been saved successfully"
+        "BhavCopy - Aric Kaji",
+        message,
     )
+
     if successBox:
         pb["value"] = 0
 
-        ask_open_file = messagebox.askyesnocancel(
-            "BhavCopy - Aric Kaji", "Do you want to open the downloaded file?"
+        ask_open_folder = messagebox.askyesno(
+            "BhavCopy - Aric Kaji",
+            "Do you want to open the download folder?",
         )
 
-        if ask_open_file:
-            try:
-                folder = out_path.parent
-                if platform.system() == "Windows":
-                    os.startfile(folder)
-
-                elif platform.system() == "Darwin":  # macOS
-                    subprocess.call(["open", folder])
-
-                else:  # Linux
-                    subprocess.call(["xdg-open", folder])
-
-            except Exception as e:
-                logger.error(f"Could not open file automatically: {e}")
+        if ask_open_folder:
+            open_folder(out_dir)
 
     status_label_var.set("Status: Completed")
     GetDataBtn.config(state="normal")
@@ -297,7 +282,7 @@ screen_height = root.winfo_screenheight()  # Height of the screen
 x = (screen_width / 2) - (width / 2)
 y = (screen_height / 2) - (height / 2)
 
-root.geometry("%dx%d+%d+%d" % (width + 3, height, x, y))
+root.geometry(f"{width + 3}x{height}+{x}+{y}")
 root.resizable(False, False)
 
 # ================= MAIN CONTAINER =================
@@ -421,9 +406,7 @@ Endmonth_entry.pack(in_=end_frame, side="left", padx=5)
 Endyear_entry.pack(in_=end_frame, side="left", padx=5)
 
 # ================= FOLDER FRAME =================
-folder_frame = LabelFrame(
-    main, text=" Output Folder ", font=("SF Pro", 12, "bold"), fg="white", bg="#1e1e1e"
-)
+folder_frame = LabelFrame(main, text=" Output Folder ", font=("SF Pro", 12, "bold"))
 folder_frame.pack(fill="x", pady=5)
 
 folder_frame.columnconfigure(1, weight=1)
@@ -433,14 +416,13 @@ FolderPathLabel = Label(folder_frame, text="Folder Path :", font=("SF Pro", 14))
 
 FolderPathButton = Button(
     folder_frame,
-    bg="#1e1e1e",
     text="Select Folder",
     font=("SF Pro", 10),
     command=GetFolderPath,
 )
 # FolderPathButton.place(x=width-450, y=height-160)
 
-FolderPathAnswer = Label(folder_frame, font=("SF Pro", 12, "bold"), bg="#1e1e1e")
+FolderPathAnswer = Label(folder_frame, font=("SF Pro", 12, "bold"))
 # FolderPathAnswer.place(x=width-350, y=height-160)
 
 format_var = StringVar(value="TXT")
@@ -477,7 +459,7 @@ pb = ttk.Progressbar(
 pb.pack(in_=main, fill="x", pady=10)
 
 # ================= BUTTON FRAME =================
-button_frame = Frame(main, bg="#1e1e1e")
+button_frame = Frame(main)
 button_frame.pack(fill="x")
 
 GetDataBtn = Button(
