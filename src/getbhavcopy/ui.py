@@ -282,7 +282,7 @@ screen_height = root.winfo_screenheight()  # Height of the screen
 x = (screen_width / 2) - (width / 2)
 y = (screen_height / 2) - (height / 2)
 
-root.geometry(f"{width + 3}x{height}+{x}+{y}")
+root.geometry(f"{width + 3}x{height}+{int(x)}+{int(y)}")
 root.resizable(False, False)
 
 # ================= MAIN CONTAINER =================
