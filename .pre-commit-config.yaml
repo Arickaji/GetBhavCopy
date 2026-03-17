@@ -24,6 +24,15 @@ repos:
         - pandas-stubs
         - pytest
 
+- repo: local
+  hooks:
+    - id: pytest
+      name: pytest (fast)
+      entry: bash -c 'pytest -m fast || pytest'
+      language: python
+      additional_dependencies: [pytest,pandas,requests]
+      pass_filenames: false
+
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v4.6.0
   hooks:
