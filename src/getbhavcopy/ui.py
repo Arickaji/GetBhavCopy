@@ -459,43 +459,43 @@ pb = ttk.Progressbar(
 pb.pack(in_=main, fill="x", pady=10)
 
 # ================= BUTTON FRAME =================
-button_frame = Frame(main)
+button_frame = Frame(main, bg="#1e1e1e")
 button_frame.pack(fill="x")
 
 GetDataBtn = Button(
     button_frame,
     text="Get Data",
-    font=("SF Pro", 10, "bold"),
+    font=("SF Pro", 12, "bold"),
     width=20,
     relief=GROOVE,
+    bg="#1e1e1e",
     command=start_download,
 )
 # GetDataBtn.place(x=width-580, y=height-80)
-GetDataBtn.config(font=("SF Pro", 12, "bold"), relief="flat")
 
 ExitBtn = Button(
     button_frame,
     text="Exit",
-    font=("SF Pro", 10, "bold"),
+    font=("SF Pro", 12, "bold"),
     width=20,
     relief=GROOVE,
+    bg="#1e1e1e",
     command=root.destroy,
 )
 # ExitBtn.place(x=width-580, y=height-50)
-
-ExitBtn.config(font=("SF Pro", 12, "bold"), relief="flat")
 
 ClearLogBtn = Button(
     button_frame,
     text="Clear Logs",
     font=("SF Pro", 12, "bold"),
     relief=GROOVE,
+    bg="#1e1e1e",
     command=clear_logs,
 )
 
-GetDataBtn.pack(side="left", expand=True, fill="x", padx=5)
-ClearLogBtn.pack(side="left", expand=True, fill="x", padx=5)
-ExitBtn.pack(side="left", expand=True, fill="x", padx=5)
+GetDataBtn.pack(side="left", fill="x", expand=True, padx=8)
+ClearLogBtn.pack(side="left", fill="x", expand=True, padx=10)
+ExitBtn.pack(side="left", fill="x", expand=True, padx=5)
 
 # ================= LOG FRAME =================
 log_frame = LabelFrame(
