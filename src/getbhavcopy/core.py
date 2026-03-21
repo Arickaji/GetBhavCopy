@@ -8,6 +8,8 @@ from io import StringIO
 import pandas as pd
 import requests
 
+from getbhavcopy.settings_windows import load_symbol_mapping
+
 logger = logging.getLogger("getbhavcopy")
 
 
@@ -40,6 +42,7 @@ class GetBhavCopy:
                 "Referer": "https://www.nseindia.com",
             }
         )
+        self._symbol_mapping = load_symbol_mapping()
 
     def _validate_response_csv(self, r):
 
@@ -52,6 +55,15 @@ class GetBhavCopy:
             raise ValueError("Invalid CSV")
 
         return text
+
+    def _apply_symbol_mapping(self, df):
+        if not self._symbol_mapping:
+            return df
+        df = df.copy()
+        df["SYMBOL"] = df["SYMBOL"].map(
+            lambda s: self._symbol_mapping.get(str(s).strip().upper(), s)
+        )
+        return df
 
     def _progress(self, value):
 
@@ -97,7 +109,8 @@ class GetBhavCopy:
 
         df["DATE"] = date_str
 
-        return df[["SYMBOL", "DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]]
+        df = df[["SYMBOL", "DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]]
+        return self._apply_symbol_mapping(df)
 
     def get_nse_indices_data_for_date(self, d):
 
@@ -127,7 +140,8 @@ class GetBhavCopy:
 
         df["DATE"] = date_str
 
-        return df[["SYMBOL", "DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]]
+        df = df[["SYMBOL", "DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]]
+        return self._apply_symbol_mapping(df)
 
     def process_day(self, day):
 
