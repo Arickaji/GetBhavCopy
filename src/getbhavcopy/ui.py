@@ -26,6 +26,7 @@ from typing import Any
 
 from getbhavcopy.core import GetBhavCopy
 from getbhavcopy.logging_config import setup_logging
+from getbhavcopy.settings_windows import SettingsWindow
 
 # Initialize logging ONCE here
 setup_logging(debug=True)
@@ -493,8 +494,17 @@ ClearLogBtn = Button(
     command=clear_logs,
 )
 
+SettingsBtn = Button(
+    button_frame,
+    text="Settings",
+    font=("SF Pro", 12, "bold"),
+    relief=GROOVE,
+    command=lambda: SettingsWindow(root),
+)
+
 GetDataBtn.pack(side="left", fill="x", expand=True, padx=8)
 ClearLogBtn.pack(side="left", fill="x", expand=True, padx=10)
+SettingsBtn.pack(side="left", fill="x", expand=True, padx=5)
 ExitBtn.pack(side="left", fill="x", expand=True, padx=5)
 
 # ================= LOG FRAME =================
