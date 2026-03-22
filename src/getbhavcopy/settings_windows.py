@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from pathlib import Path
 from tkinter import Canvas, StringVar, messagebox
 
@@ -57,7 +58,13 @@ class SettingsWindow:
     DEL_BG = "#3a1a1a"
     DEL_FG = "#ff6060"
     SB_W = 14
-    FONT = "SF Pro"
+    FONT = (
+        "SF Pro"
+        if sys.platform == "darwin"
+        else "Segoe UI"
+        if sys.platform == "win32"
+        else "Ubuntu"
+    )
 
     def __init__(self, parent: object) -> None:
         from tkinter import Toplevel
@@ -111,6 +118,13 @@ class SettingsWindow:
         self.win.deiconify()
         self.win.lift()
         self.win.focus_force()
+        self.win.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _on_close(self) -> None:
+        self.win.unbind_all("<MouseWheel>")
+        self.win.unbind_all("<Button-4>")
+        self.win.unbind_all("<Button-5>")
+        self.win.destroy()
 
     def _build_header(self) -> None:
         from tkinter import Frame, Label
@@ -291,7 +305,7 @@ class SettingsWindow:
             text_color=self.HDR_FG,
             hover_color="#4a4a4a",
             corner_radius=6,
-            command=self.win.destroy,
+            command=self._on_close,
         ).pack(side="right", padx=(8, 0))
 
         ctk.CTkButton(
@@ -402,7 +416,7 @@ class SettingsWindow:
             mapping[original] = custom
         try:
             save_symbol_mapping(mapping)
-            self.win.destroy()
+            self._on_close()
         except Exception as e:
             messagebox.showerror("Save Failed", f"Could not save mapping:\n{e}")
 
@@ -436,10 +450,13 @@ class SettingsWindow:
     def _on_mousewheel(self, event: object) -> None:
         from tkinter import Event
 
-        if isinstance(event, Event):
-            if event.num == 4:
-                self.canvas.yview_scroll(-1, "units")
-            elif event.num == 5:
-                self.canvas.yview_scroll(1, "units")
-            elif event.delta:
-                self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        try:
+            if isinstance(event, Event):
+                if event.num == 4:
+                    self.canvas.yview_scroll(-1, "units")
+                elif event.num == 5:
+                    self.canvas.yview_scroll(1, "units")
+                elif event.delta:
+                    self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        except Exception:
+            pass
