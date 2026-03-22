@@ -610,7 +610,12 @@ class App:
             hover_color=self._c("BTN_HOVER"),
             corner_radius=8,
             height=40,
-            command=lambda: SettingsWindow(self.root),
+            command=lambda: SettingsWindow(
+                self.root,
+                palette=SettingsWindow.LIGHT
+                if self._palette is self.LIGHT
+                else SettingsWindow.DARK,
+            ),
         ).pack(side="left", fill="x", expand=True, padx=(8, 0))
 
         ctk.CTkButton(
