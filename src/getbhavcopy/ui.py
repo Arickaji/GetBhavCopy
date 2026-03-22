@@ -241,7 +241,7 @@ class App:
 
         ctk.CTkLabel(
             right,
-            text="v1.0.5",
+            text="v1.0.6",
             font=(self.FONT, 11),
             fg_color=self._c("BG3"),
             text_color=self._c("FG3"),
