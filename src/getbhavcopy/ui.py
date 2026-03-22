@@ -273,11 +273,24 @@ class App:
         self._refresh_ui()
 
     def _refresh_ui(self) -> None:
+        # Save log content before destroying
+        try:
+            log_content = self._log_box._textbox.get("1.0", "end-1c")
+        except Exception:
+            log_content = ""
+
         for widget in self.root.winfo_children():
             widget.destroy()
         self.root.configure(fg_color=self._c("BG"))
         self._build_ui()
         self._connect_logger()
+
+        # Restore log content after rebuild
+        if log_content:
+            self._log_box._textbox.configure(state="normal")
+            self._log_box._textbox.insert("1.0", log_content + "\n")
+            self._log_box._textbox.configure(state="disabled")
+            self._log_box._textbox.see("end")
 
     def _build_date_section(self) -> None:
         outer = ctk.CTkFrame(self.root, fg_color=self._c("BG"), corner_radius=0)
@@ -673,7 +686,10 @@ class App:
                 logger.removeHandler(h)
         handler = TkinterLogHandler(self._log_box)
         handler.setLevel(logging.DEBUG)
-        formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
+        formatter = logging.Formatter(
+            "%(asctime)s | %(levelname)s | %(message)s",
+            datefmt="%H:%M:%S",
+        )
         handler.setFormatter(formatter)
         logger.addHandler(handler)
         logger.propagate = False
