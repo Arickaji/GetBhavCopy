@@ -23,6 +23,7 @@ repos:
         - types-requests
         - pandas-stubs
         - pytest
+        - "customtkinter>=5.2.2"
 
 - repo: local
   hooks:

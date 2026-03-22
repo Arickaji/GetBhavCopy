@@ -11,7 +11,8 @@ dependencies = [
   "requests",
   "types-requests",
   "pandas",
-  "pandas-stubs"
+  "pandas-stubs",
+  "customtkinter>=5.2.2"
 ]
 
 [tool.setuptools]
@@ -39,6 +40,7 @@ warn_redundant_casts = true
 warn_unused_configs = true
 mypy_path = "src"
 explicit_package_bases = true
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
