@@ -1,16 +1,17 @@
 import json
 import os
+import sys
 from pathlib import Path
-from tkinter import (
-    Canvas,
-    Entry,
-    Frame,
-    Label,
-    Scrollbar,
-    StringVar,
-    Toplevel,
-    messagebox,
-)
+from tkinter import Canvas, StringVar, messagebox
+
+try:
+    import customtkinter as ctk
+
+    ctk.set_appearance_mode("system")
+    ctk.set_default_color_theme("dark-blue")
+    _CTK_AVAILABLE = True
+except ImportError:
+    _CTK_AVAILABLE = False
 
 
 def get_mapping_path() -> Path:
@@ -56,16 +57,26 @@ class SettingsWindow:
     SAVE_FG = "#80ff80"
     DEL_BG = "#3a1a1a"
     DEL_FG = "#ff6060"
-    SB_W = 14  # scrollbar width — must match everywhere
+    SB_W = 14
+    FONT = (
+        "SF Pro"
+        if sys.platform == "darwin"
+        else "Segoe UI"
+        if sys.platform == "win32"
+        else "Ubuntu"
+    )
 
-    def __init__(self, parent):
-        self.win = Toplevel(parent)
+    def __init__(self, parent: object) -> None:
+        from tkinter import Toplevel
+
+        self.win = Toplevel()
         self.win.withdraw()
         self.win.title("Settings - Symbol Mapping")
         self.win.geometry("620x460")
         self.win.minsize(500, 380)
         self.win.resizable(True, True)
         self.win.configure(bg=self.BG)
+        self.win.transient(getattr(parent, "_w", None))
 
         self._rows: list[tuple[StringVar, StringVar, int]] = []
         self._data_row = 0
@@ -84,30 +95,44 @@ class SettingsWindow:
     # Build sections
     # ------------------------------------------------------------------
 
-    def _center_on_parent(self, parent):
+    def _center_on_parent(self, parent: object) -> None:
         self.win.update_idletasks()
         w = 620
         h = 460
-        pw = parent.winfo_width()
-        ph = parent.winfo_height()
-        px = parent.winfo_rootx()
-        py = parent.winfo_rooty()
+        pw = int(getattr(parent, "winfo_width")())
+        ph = int(getattr(parent, "winfo_height")())
+        px = int(getattr(parent, "winfo_rootx")())
+        py = int(getattr(parent, "winfo_rooty")())
         x = px + (pw - w) // 2
         y = py + (ph - h) // 2
         self.win.geometry(f"{w}x{h}+{x}+{y}")
         self.win.after(10, self._show)
 
-    def _show(self):
+    # def _show(self) -> None:
+    #     self.win.deiconify()
+    #     self.win.lift()
+    #     self.win.focus_force()
+    #     self.win.after(100, self._apply_grab)
+
+    def _show(self) -> None:
         self.win.deiconify()
         self.win.lift()
         self.win.focus_force()
-        self.win.grab_set()
+        self.win.protocol("WM_DELETE_WINDOW", self._on_close)
 
-    def _build_header(self):
+    def _on_close(self) -> None:
+        self.win.unbind_all("<MouseWheel>")
+        self.win.unbind_all("<Button-4>")
+        self.win.unbind_all("<Button-5>")
+        self.win.destroy()
+
+    def _build_header(self) -> None:
+        from tkinter import Frame, Label
+
         Label(
             self.win,
             text="Symbol Mapping",
-            font=("SF Pro", 16, "bold"),
+            font=(self.FONT, 16, "bold"),
             fg=self.FG,
             bg=self.BG,
         ).pack(pady=(16, 2))
@@ -115,29 +140,35 @@ class SettingsWindow:
         Label(
             self.win,
             text="Rename any NSE symbol or index in your output files.",
-            font=("SF Pro", 11),
+            font=(self.FONT, 11),
             fg=self.HDR_FG,
             bg=self.BG,
         ).pack(pady=(0, 10))
 
-        Frame(self.win, bg=self.SEP, height=1).pack(fill="x", padx=20)
+        Frame(
+            self.win,
+            height=1,
+            bg=self.SEP,
+        ).pack(fill="x", padx=20)
 
-    def _build_table(self):
+    def _build_table(self) -> None:
+        from tkinter import Frame, Label
+
         outer = Frame(self.win, bg=self.SEP)
         outer.pack(fill="both", expand=True, padx=20)
 
-        # ── Fixed header (never scrolls) ───────────────────────────────
+        # Fixed header
         hdr = Frame(outer, bg=self.HDR_BG)
         hdr.pack(fill="x", side="top")
         hdr.columnconfigure(0, weight=1)
         hdr.columnconfigure(1, weight=1)
         hdr.columnconfigure(2, minsize=72)
-        hdr.columnconfigure(3, minsize=self.SB_W)  # matches scrollbar width
+        hdr.columnconfigure(3, minsize=self.SB_W)
 
         Label(
             hdr,
-            text="  Original Name (NSE)",
-            font=("SF Pro", 10, "bold"),
+            text=" Original Name (NSE)",
+            font=(self.FONT, 10, "bold"),
             fg=self.HDR_FG,
             bg=self.HDR_BG,
             anchor="w",
@@ -147,8 +178,8 @@ class SettingsWindow:
 
         Label(
             hdr,
-            text="  Custom Name",
-            font=("SF Pro", 10, "bold"),
+            text=" Custom Name",
+            font=(self.FONT, 10, "bold"),
             fg=self.HDR_FG,
             bg=self.HDR_BG,
             anchor="w",
@@ -159,25 +190,26 @@ class SettingsWindow:
         Label(
             hdr,
             text="Action",
-            font=("SF Pro", 10, "bold"),
+            font=(self.FONT, 10, "bold"),
             fg=self.HDR_FG,
             bg=self.HDR_BG,
             anchor="center",
         ).grid(row=0, column=2, sticky="ew", ipady=8)
 
-        # Spacer that reserves exactly SB_W pixels — aligns with scrollbar
         Label(
             hdr,
             text="",
             bg=self.HDR_BG,
-            width=1,
+            width=self.SB_W,
         ).grid(row=0, column=3, sticky="ew", ipady=8)
 
-        # 1px separator below header
+        # Separator below header
         Frame(outer, bg=self.SEP, height=1).pack(fill="x", side="top")
 
-        # ── Scrollable body ────────────────────────────────────────────
-        body = Frame(outer, bg=self.BG)
+        # Scrollable body
+        from tkinter import Frame as TkFrame
+
+        body = TkFrame(outer, bg=self.BG)
         body.pack(fill="both", expand=True, side="top")
 
         self.canvas = Canvas(
@@ -187,30 +219,26 @@ class SettingsWindow:
             bd=0,
         )
 
-        # Wrap scrollbar in a frame so we can control its background
-        sb_frame = Frame(body, bg=self.HDR_BG, width=self.SB_W)
-        sb_frame.pack(side="right", fill="y")
-        sb_frame.pack_propagate(False)
-
-        scrollbar = Scrollbar(
-            sb_frame,
-            orient="vertical",
+        scrollbar = ctk.CTkScrollbar(
+            body,
+            orientation="vertical",
             command=self.canvas.yview,
-            bg=self.SEP,
-            troughcolor=self.HDR_BG,
-            activebackground="#666666",
-            highlightthickness=0,
-            highlightbackground=self.HDR_BG,
-            bd=0,
             width=self.SB_W,
-            elementborderwidth=0,
+            fg_color=self.HDR_BG,
+            button_color=self.SEP,
+            button_hover_color="#666666",
         )
-        scrollbar.pack(fill="both", expand=True)
         self.canvas.configure(yscrollcommand=scrollbar.set)
+
+        scrollbar.pack(side="right", fill="y")
         self.canvas.pack(side="left", fill="both", expand=True)
 
-        # ── Rows frame inside canvas ───────────────────────────────────
-        self.rows_frame = Frame(self.canvas, bg=self.BG)
+        from tkinter import Frame
+
+        self.rows_frame = Frame(
+            self.canvas,
+            bg=self.BG,
+        )
         self.rows_frame.columnconfigure(0, weight=1)
         self.rows_frame.columnconfigure(1, weight=1)
         self.rows_frame.columnconfigure(2, minsize=72)
@@ -229,73 +257,75 @@ class SettingsWindow:
         self._hdr = hdr
         hdr.bind("<Configure>", self._sync_column_widths)
 
-    def _update_count(self):
+    def _update_count(self) -> None:
         count = len(self._rows)
         text = f"{count} mapping" if count == 1 else f"{count} mappings"
-        self._count_label.configure(text=text)
+        self._count_label.config(text=text)
 
-    def _build_footer(self):
-        Frame(self.win, bg=self.SEP, height=1).pack(fill="x", padx=20)
+    def _build_footer(self) -> None:
+        from tkinter import Frame, Label
+
+        Frame(
+            self.win,
+            height=1,
+            bg=self.SEP,
+        ).pack(fill="x", padx=20)
 
         self._count_label = Label(
             self.win,
             text="",
-            font=("SF Pro", 10),
+            font=(self.FONT, 10),
             fg=self.HDR_FG,
             bg=self.BG,
         )
         self._count_label.pack(anchor="e", padx=24, pady=(4, 0))
 
-        btn_row = Frame(self.win, bg=self.BG)
+        btn_row = Frame(
+            self.win,
+            bg=self.BG,
+        )
         btn_row.pack(fill="x", padx=20, pady=12)
 
-        add_btn = Label(
+        ctk.CTkButton(
             btn_row,
             text="+ Add Row",
-            font=("SF Pro", 11),
-            bg=self.BTN_BG,
-            fg=self.BTN_FG,
-            anchor="center",
-            cursor="hand2",
-            padx=14,
-            pady=7,
-        )
-        add_btn.pack(side="left")
-        add_btn.bind("<Button-1>", lambda e: self.add_row())
+            font=(self.FONT, 11),
+            fg_color=self.BTN_BG,
+            text_color=self.BTN_FG,
+            hover_color="#4a4a4a",
+            corner_radius=6,
+            command=self.add_row,
+        ).pack(side="left")
 
-        cancel_btn = Label(
+        ctk.CTkButton(
             btn_row,
             text="Cancel",
-            font=("SF Pro", 11),
-            bg=self.BTN_BG,
-            fg=self.HDR_FG,
-            anchor="center",
-            cursor="hand2",
-            padx=14,
-            pady=7,
-        )
-        cancel_btn.pack(side="right", padx=(8, 0))
-        cancel_btn.bind("<Button-1>", lambda e: self.win.destroy())
+            font=(self.FONT, 11),
+            fg_color=self.BTN_BG,
+            text_color=self.HDR_FG,
+            hover_color="#4a4a4a",
+            corner_radius=6,
+            command=self._on_close,
+        ).pack(side="right", padx=(8, 0))
 
-        save_btn = Label(
+        ctk.CTkButton(
             btn_row,
             text="Save",
-            font=("SF Pro", 11, "bold"),
-            bg=self.SAVE_BG,
-            fg=self.SAVE_FG,
-            anchor="center",
-            cursor="hand2",
-            padx=14,
-            pady=7,
-        )
-        save_btn.pack(side="right")
-        save_btn.bind("<Button-1>", lambda e: self.save_mapping())
+            font=(self.FONT, 11, "bold"),
+            fg_color=self.SAVE_BG,
+            text_color=self.SAVE_FG,
+            hover_color="#2a5a2a",
+            corner_radius=6,
+            command=self.save_mapping,
+        ).pack(side="right")
 
     # ------------------------------------------------------------------
     # Row management
     # ------------------------------------------------------------------
 
-    def add_row(self, original="", custom=""):
+    def add_row(self, original: str = "", custom: str = "") -> None:
+        from tkinter import Entry, Frame
+
         orig_var = StringVar(value=original)
         custom_var = StringVar(value=custom)
         r = self._data_row
@@ -305,7 +335,7 @@ class SettingsWindow:
         Entry(
             self.rows_frame,
             textvariable=orig_var,
-            font=("SF Pro", 11),
+            font=(self.FONT, 11),
             bg=row_bg,
             fg=self.ENTRY_FG,
             insertbackground="#ffffff",
@@ -314,10 +344,16 @@ class SettingsWindow:
             highlightthickness=0,
         ).grid(row=r, column=0, sticky="ew", ipady=9, padx=(4, 0))
 
+        Frame(
+            self.rows_frame,
+            bg=self.SEP,
+            width=1,
+        ).grid(row=r, column=0, sticky="nes")
+
         Entry(
             self.rows_frame,
             textvariable=custom_var,
-            font=("SF Pro", 11),
+            font=(self.FONT, 11),
             bg=row_bg,
             fg=self.ENTRY_FG,
             insertbackground="#ffffff",
@@ -326,46 +362,41 @@ class SettingsWindow:
             highlightthickness=0,
         ).grid(row=r, column=1, sticky="ew", ipady=9, padx=(4, 0))
 
-        Frame(self.rows_frame, bg=self.SEP, width=1).grid(row=r, column=0, sticky="nes")
-
-        del_btn = Label(
+        ctk.CTkButton(
             self.rows_frame,
             text="✕",
-            font=("SF Pro", 11),
-            bg=self.DEL_BG,
-            fg=self.DEL_FG,
-            anchor="center",
-            cursor="hand2",
-        )
-        del_btn.grid(row=r, column=2, sticky="nsew", ipady=9)
+            font=(self.FONT, 11),
+            fg_color=self.DEL_BG,
+            text_color=self.DEL_FG,
+            hover_color="#6a2a2a",
+            corner_radius=0,
+            width=72,
+            height=36,
+            command=lambda rv=orig_var, cv=custom_var, ro=r: self._delete_row(
+                rv, cv, ro
+            ),
+        ).grid(row=r, column=2, sticky="nsew")
 
-        def on_delete(
-            e: object,
-            rv: StringVar = orig_var,
-            cv: StringVar = custom_var,
-            ro: int = r,
-        ) -> None:
-            self._delete_row(rv, cv, ro)
-
-        del_btn.bind("<Button-1>", on_delete)
-
-        Frame(self.rows_frame, bg=self.SEP, height=1).grid(
-            row=r + 1, column=0, columnspan=3, sticky="ew"
-        )
+        Frame(
+            self.rows_frame,
+            bg=self.SEP,
+            height=1,
+        ).grid(row=r + 1, column=0, columnspan=3, sticky="ew")
 
         self._rows.append((orig_var, custom_var, r))
         self._data_row += 2
         self._update_count()
 
-    def _delete_row(self, orig_var, custom_var, row_index):
+    def _delete_row(
+        self, orig_var: StringVar, custom_var: StringVar, row_index: int
+    ) -> None:
         self._rows = [(ov, cv, ri) for ov, cv, ri in self._rows if ri != row_index]
         for widget in self.rows_frame.grid_slaves():
             if widget.grid_info().get("row") in (row_index, row_index + 1):
                 widget.destroy()
-
         self._update_count()
 
-    def _load_existing(self):
+    def _load_existing(self) -> None:
         mapping = load_symbol_mapping()
         for original, custom in mapping.items():
             self.add_row(original, custom)
@@ -375,45 +406,57 @@ class SettingsWindow:
     # Save
     # ------------------------------------------------------------------
 
-    def save_mapping(self):
-        mapping = {}
+    def save_mapping(self) -> None:
+        mapping: dict[str, str] = {}
         for orig_var, custom_var, _ in self._rows:
             original = orig_var.get().strip().upper()
             custom = custom_var.get().strip()
             if not original or not custom:
                 continue
             mapping[original] = custom
-        save_symbol_mapping(mapping)
-        messagebox.showinfo(
-            "Saved", f"Mapping saved successfully ({len(mapping)} entries)."
-        )
-        self.win.destroy()
+        try:
+            save_symbol_mapping(mapping)
+            self._on_close()
+        except Exception as e:
+            messagebox.showerror("Save Failed", f"Could not save mapping:\n{e}")
 
     # ------------------------------------------------------------------
     # Canvas / scroll / sync helpers
     # ------------------------------------------------------------------
 
-    def _sync_column_widths(self, event=None) -> None:
+    def _sync_column_widths(self, event: object = None) -> None:
         self.win.update_idletasks()
-        bbox0 = self._hdr.grid_bbox(0, 0)
-        bbox1 = self._hdr.grid_bbox(1, 0)
-        bbox2 = self._hdr.grid_bbox(2, 0)
-        if bbox0 and bbox1 and bbox2:
-            self.rows_frame.columnconfigure(0, minsize=bbox0[2])
-            self.rows_frame.columnconfigure(1, minsize=bbox1[2])
-            self.rows_frame.columnconfigure(2, minsize=bbox2[2])
+        total = self.canvas.winfo_width()
+        if total < 10:
+            return
+        action_w = 72
+        col_w = (total - action_w) // 2
+        self.rows_frame.columnconfigure(0, minsize=col_w, weight=1)
+        self.rows_frame.columnconfigure(1, minsize=col_w, weight=1)
+        self.rows_frame.columnconfigure(2, minsize=action_w)
+        self._hdr.columnconfigure(0, minsize=col_w, weight=1)
+        self._hdr.columnconfigure(1, minsize=col_w, weight=1)
+        self._hdr.columnconfigure(2, minsize=action_w)
 
-    def _on_frame_configure(self, event=None):
+    def _on_frame_configure(self, event: object = None) -> None:
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
-    def _on_canvas_configure(self, event):
-        self.canvas.itemconfig(self.canvas_window, width=event.width)
+    def _on_canvas_configure(self, event: object) -> None:
+        if hasattr(event, "width"):
+            w = getattr(event, "width")
+            self.canvas.itemconfig(self.canvas_window, width=w)
         self._sync_column_widths()
 
-    def _on_mousewheel(self, event):
-        if event.num == 4:
-            self.canvas.yview_scroll(-1, "units")
-        elif event.num == 5:
-            self.canvas.yview_scroll(1, "units")
-        else:
-            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+    def _on_mousewheel(self, event: object) -> None:
+        from tkinter import Event
+
+        try:
+            if isinstance(event, Event):
+                if event.num == 4:
+                    self.canvas.yview_scroll(-1, "units")
+                elif event.num == 5:
+                    self.canvas.yview_scroll(1, "units")
+                elif event.delta:
+                    self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        except Exception:
+            pass

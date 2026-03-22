@@ -65,11 +65,11 @@ class GetBhavCopy:
         )
         return df
 
-    def _progress(self, value):
-
-        if self.ProgramBarValue is not None:
+    def _progress(self, value: int) -> None:
+        if hasattr(self, "_progress_callback"):
+            self._progress_callback(value)
+        elif self.ProgramBarValue is not None:
             self.ProgramBarValue["value"] = value
-
         if self.rootWindow is not None:
             self.rootWindow.update_idletasks()
 

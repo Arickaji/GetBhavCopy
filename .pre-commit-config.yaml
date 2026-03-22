@@ -1,10 +1,5 @@
 repos:
 
-- repo: https://github.com/psf/black
-  rev: 24.4.2
-  hooks:
-    - id: black
-
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: v0.15.6
   hooks:
@@ -23,6 +18,7 @@ repos:
         - types-requests
         - pandas-stubs
         - pytest
+        - "customtkinter>=5.2.2"
 
 - repo: local
   hooks:

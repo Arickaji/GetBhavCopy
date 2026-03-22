@@ -6,51 +6,21 @@ import sys
 import threading
 from datetime import datetime
 from pathlib import Path
-from tkinter import (
-    CENTER,
-    GROOVE,
-    Button,
-    Entry,
-    Frame,
-    Label,
-    LabelFrame,
-    StringVar,
-    Tk,
-    filedialog,
-    messagebox,
-    ttk,
-)
-from tkinter.scrolledtext import ScrolledText
-from tkinter.ttk import Style
+from tkinter import StringVar, filedialog, messagebox
 from typing import Any
+
+import customtkinter as ctk
 
 from getbhavcopy.core import GetBhavCopy
 from getbhavcopy.logging_config import setup_logging
 from getbhavcopy.settings_windows import SettingsWindow
 
-# Initialize logging ONCE here
+ctk.set_appearance_mode("system")
+ctk.set_default_color_theme("dark-blue")
+
 setup_logging(debug=True)
 
-
-class TkinterLogHandler(logging.Handler):
-    def __init__(self, text_widget):
-        super().__init__()
-        self.text_widget = text_widget
-
-    def emit(self, record):
-        msg = self.format(record)
-
-        def append():
-            if record.levelno >= logging.ERROR:
-                self.text_widget.insert("end", msg + "\n", "ERROR")
-            elif record.levelno >= logging.WARNING:
-                self.text_widget.insert("end", msg + "\n", "WARNING")
-            else:
-                self.text_widget.insert("end", msg + "\n")
-
-            self.text_widget.see("end")
-
-        self.text_widget.after(0, append)
+logger = logging.getLogger("getbhavcopy")
 
 
 def get_config_path() -> Path:
@@ -60,16 +30,10 @@ def get_config_path() -> Path:
     return base / "SaveDirPath.json"
 
 
-def start_download():
-    thread = threading.Thread(target=handle_get_data)
-    thread.daemon = True
-    thread.start()
-
-
 def load_config() -> Any:
     path = get_config_path()
     if not path.exists():
-        default = {"DirPath": str(Path.cwd())}
+        default = {"DirPath": str(Path.cwd()), "theme": "system", "format": "TXT"}
         path.write_text(js.dumps(default, indent=2))
         return default
     return js.loads(path.read_text())
@@ -78,108 +42,6 @@ def load_config() -> Any:
 def save_config(cfg: dict) -> None:
     path = get_config_path()
     path.write_text(js.dumps(cfg, indent=2))
-
-
-def limitSizeDay(*args):
-    value = day.get()
-    # if int(value) > 31 or (str(value.lower()) >= 'a' and str(value.upper()) <= 'z'):
-    if value != "":
-        if not value.isdigit() or int(value) > 31:
-            day.set("")
-        else:
-            if len(value) > 2:
-                day.set(value[:2])
-            if len(value) >= 2:
-                if "month_entry" in globals():
-                    month_entry.focus()
-                    month_entry.select_range(0, "end")
-                    month_entry.icursor("end")
-
-
-def limitSizeMonth(*args):
-    value = month.get()
-    if value != "":
-        if not value.isdigit() or int(value) > 12:
-            month.set("")
-        else:
-            if len(value) > 2:
-                month.set(value[:2])
-            if len(value) >= 2:
-                if "year_entry" in globals():
-                    year_entry.focus()
-                    year_entry.select_range(0, "end")
-                    year_entry.icursor("end")
-
-
-def limitSizeYear(*args):
-    value = year.get()
-    if value != "":
-        if not value.isdigit():
-            year.set("")
-        else:
-            if len(value) > 4:
-                year.set(value[:4])
-            if len(value) >= 4:
-                if "Endday_entry" in globals():
-                    Endday_entry.focus()
-                    Endday_entry.select_range(0, "end")
-                    Endday_entry.icursor("end")
-
-
-def EndlimitSizeDay(*args):
-    value = Endday.get()
-    # if int(value) > 31 or (str(value.lower()) >= 'a' and str(value.upper()) <= 'z'):
-    if value != "":
-        if not value.isdigit() or int(value) > 31:
-            Endday.set("")
-        else:
-            if len(value) > 2:
-                Endday.set(value[:2])
-            if len(value) >= 2:
-                if "Endmonth_entry" in globals():
-                    Endmonth_entry.focus()
-                    Endmonth_entry.select_range(0, "end")
-                    Endmonth_entry.icursor("end")
-
-
-def EndlimitSizeMonth(*args):
-    value = Endmonth.get()
-    if value != "":
-        if not value.isdigit() or int(value) > 12:
-            Endmonth.set("")
-        else:
-            if len(value) > 2:
-                Endmonth.set(value[:2])
-            if len(value) >= 2:
-                if "Endyear_entry" in globals():
-                    Endyear_entry.focus()
-                    Endyear_entry.select_range(0, "end")
-                    Endyear_entry.icursor("end")
-
-
-def EndlimitSizeYear(*args):
-    value = Endyear.get()
-    if value != "":
-        if not value.isdigit():
-            Endyear.set("")
-        else:
-            if len(value) > 4:
-                Endyear.set(value[:4])
-
-
-def GetFolderPath():
-    path = filedialog.askdirectory(title="Select a Folder")
-    if path:
-        FolderPathAnswer["text"] = path
-        cfg = load_config()
-        cfg["DirPath"] = path
-        save_config(cfg)
-    else:
-        FolderPathAnswer["text"] = "Current Folder Location"
-
-
-def clear_logs():
-    log_box.delete("1.0", "end")
 
 
 def open_folder(path: Path) -> None:
@@ -194,379 +56,644 @@ def open_folder(path: Path) -> None:
         logger.error(f"Could not open folder automatically: {e}")
 
 
-def handle_get_data():
+class TkinterLogHandler(logging.Handler):
+    def __init__(self, text_widget: ctk.CTkTextbox) -> None:
+        super().__init__()
+        self.text_widget = text_widget
 
-    GetDataBtn.config(state="disabled")
+    def emit(self, record: logging.LogRecord) -> None:
+        msg = self.format(record)
 
-    status_label_var.set("Status: Downloading data...")
-    root.update_idletasks()
+        def append() -> None:
+            self.text_widget.configure(state="normal")
+            if record.levelno >= logging.ERROR:
+                self.text_widget.insert("end", msg + "\n", "ERROR")
+            elif record.levelno >= logging.WARNING:
+                self.text_widget.insert("end", msg + "\n", "WARNING")
+            else:
+                self.text_widget.insert("end", msg + "\n")
+            self.text_widget.see("end")
+            self.text_widget.configure(state="disabled")
 
-    StartingDate = year.get() + "-" + month.get() + "-" + day.get()
-    EndingDate = Endyear.get() + "-" + Endmonth.get() + "-" + Endday.get()
+        self.text_widget.after(0, append)
 
-    logger.info(f"User requested download: {StartingDate} -> {EndingDate}")
 
-    b = GetBhavCopy(
-        StartingDate, EndingDate, FolderPathAnswer["text"], format_var.get(), pb, root
+class ProgressAdapter:
+    def __init__(self, bar: ctk.CTkProgressBar) -> None:
+        self._bar = bar
+
+    def __setitem__(self, key: str, value: int) -> None:
+        if key == "value":
+            self._bar.set(value / 100)
+
+
+class App:
+    # ── Colours ───────────────────────────────────────────────────────
+    BG = "#1a1a1a"
+    BG2 = "#232323"
+    BG3 = "#2d2d2d"
+    FG = "#ffffff"
+    FG2 = "#aaaaaa"
+    FG3 = "#666666"
+    SEP = "#2a2a2a"
+    ACCENT = "#1a3a1a"
+    ACCENT_FG = "#80ff80"
+    FONT = (
+        "SF Pro"
+        if sys.platform == "darwin"
+        else "Segoe UI"
+        if sys.platform == "win32"
+        else "Ubuntu"
     )
 
-    try:
-        b.get_bhavcopy()
+    def __init__(self) -> None:
+        self.root = ctk.CTk()
+        self.root.title("GetBhavCopy Downloader - NSE EQ Cash Segment - By Aric Kaji")
+        # self.root.resizable(False, False)
+        self.root.configure(fg_color=self.BG)
 
-    except ValueError as e:
-        logger.warning(f"User input error: {e}")
+        self._cfg = load_config()
+        self._apply_theme(self._cfg.get("theme", "system"))
+        self._center_window(720, 600)
 
-        messagebox.showwarning("Invalid Input", str(e))
+        self._build_ui()
+        self._connect_logger()
 
-        GetDataBtn.config(state="normal")
-        status_label_var.set("Status: Download Failed")
-        return
+        logger.info("UI logging initialized successfully.")
 
-    except Exception:
-        logger.exception("Unexpected download error")
+    def _apply_theme(self, mode: str) -> None:
+        ctk.set_appearance_mode(mode)
+        self._cfg["theme"] = mode
+        save_config(self._cfg)
 
-        messagebox.showerror(
-            "Download Failed",
-            """Something went wrong while downloading the data.
-            \nPlease check the logs.""",
+    def _center_window(self, w: int, h: int) -> None:
+        self.root.update_idletasks()
+        sw = self.root.winfo_screenwidth()
+        sh = self.root.winfo_screenheight()
+        x = (sw - w) // 2
+        y = (sh - h) // 2
+        self.root.geometry(f"{w}x{h}+{x}+{y}")
+
+    def run(self) -> None:
+        self.root.mainloop()
+
+    def _build_ui(self) -> None:
+        self._build_titlebar()
+        self._build_date_section()
+        self._build_output_section()
+        self._build_progress()
+        self._build_buttons()
+        self._build_statusbar()
+        self._build_logs()
+
+    def _build_titlebar(self) -> None:
+        bar = ctk.CTkFrame(self.root, fg_color=self.SEP, height=1, corner_radius=0)
+        bar.pack(fill="x", padx=0, pady=0)
+
+        main = ctk.CTkFrame(self.root, fg_color=self.BG, corner_radius=0)
+        main.pack(fill="x", padx=36, pady=(20, 0))
+
+        # Left — app name and subtitle
+        left = ctk.CTkFrame(main, fg_color=self.BG, corner_radius=0)
+        left.pack(side="left", fill="x", expand=True)
+
+        ctk.CTkLabel(
+            left,
+            text="GetBhavCopy",
+            font=(self.FONT, 22, "bold"),
+            text_color=self.FG,
+            anchor="w",
+        ).pack(anchor="w")
+
+        ctk.CTkLabel(
+            left,
+            text="NSE Equity & Indices Data Extraction Tool",
+            font=(self.FONT, 12),
+            text_color=self.FG3,
+            anchor="w",
+        ).pack(anchor="w")
+
+        # Right — theme toggle and version badge
+        right = ctk.CTkFrame(main, fg_color=self.BG, corner_radius=0)
+        right.pack(side="right")
+
+        self._theme_btn = ctk.CTkButton(
+            right,
+            text="☀ Light",
+            font=(self.FONT, 11),
+            fg_color=self.BG3,
+            text_color=self.FG2,
+            hover_color="#3a3a3a",
+            corner_radius=6,
+            width=80,
+            height=28,
+            command=self._toggle_theme,
+        )
+        self._theme_btn.pack(side="right", padx=(8, 0))
+
+        ctk.CTkLabel(
+            right,
+            text="v1.0.5",
+            font=(self.FONT, 11),
+            fg_color=self.BG3,
+            text_color=self.FG3,
+            corner_radius=6,
+            width=60,
+            height=28,
+        ).pack(side="right")
+
+        # Separator line below header
+        ctk.CTkFrame(self.root, fg_color=self.SEP, height=1, corner_radius=0).pack(
+            fill="x", padx=36, pady=(12, 0)
         )
 
-        GetDataBtn.config(state="normal")
-        status_label_var.set("Status: Download Failed")
-        return
+    def _toggle_theme(self) -> None:
+        current = self._cfg.get("theme", "system")
+        if current == "dark":
+            new_theme = "light"
+            btn_text = "☀ Light"
+        elif current == "light":
+            new_theme = "system"
+            btn_text = "⚙ System"
+        else:
+            new_theme = "dark"
+            btn_text = "☾ Dark"
+        self._apply_theme(new_theme)
+        self._theme_btn.configure(text=btn_text)
 
-    skipped = getattr(b, "failed_dates", [])
+    def _build_date_section(self) -> None:
+        outer = ctk.CTkFrame(self.root, fg_color=self.BG, corner_radius=0)
+        outer.pack(fill="x", padx=36, pady=(16, 0))
 
-    pb["value"] = 100
-    root.update_idletasks()
+        ctk.CTkLabel(
+            outer,
+            text="DATE RANGE",
+            font=(self.FONT, 10, "bold"),
+            text_color=self.FG3,
+            anchor="w",
+        ).pack(anchor="w", pady=(0, 6))
 
-    out_dir = Path(FolderPathAnswer["text"])
+        row = ctk.CTkFrame(outer, fg_color=self.BG, corner_radius=0)
+        row.pack(fill="x")
+        row.columnconfigure(0, weight=1)
+        row.columnconfigure(1, weight=1)
 
-    message = "✅ BhavCopy files downloaded successfully."
+        # Start date card
+        start = ctk.CTkFrame(row, fg_color=self.BG2, corner_radius=8)
+        start.grid(row=0, column=0, sticky="ew", padx=(0, 8))
 
-    if skipped:
-        message += f"\n\nSkipped dates (holiday/unavailable): {len(skipped)}"
+        ctk.CTkLabel(
+            start,
+            text="Start Date",
+            font=(self.FONT, 10),
+            text_color=self.FG3,
+            anchor="w",
+        ).pack(anchor="w", padx=14, pady=(8, 2))
 
-    successBox = messagebox.showinfo(
-        "BhavCopy - Aric Kaji",
-        message,
-    )
+        fields_start = ctk.CTkFrame(start, fg_color=self.BG2, corner_radius=0)
+        fields_start.pack(fill="x", padx=14, pady=(0, 10))
 
-    if successBox:
-        pb["value"] = 0
+        currentDate = datetime.today().strftime("%d-%m-%Y")
+        parts = currentDate.split("-")
 
-        ask_open_folder = messagebox.askyesno(
-            "BhavCopy - Aric Kaji",
-            "Do you want to open the download folder?",
+        self._day = StringVar(value=parts[0])
+        self._month = StringVar(value=parts[1])
+        self._year = StringVar(value=parts[2])
+
+        self._day.trace("w", self._limit_day)
+        self._month.trace("w", self._limit_month)
+        self._year.trace("w", self._limit_year)
+
+        self._day_entry = self._date_field(fields_start, self._day, 4)
+        self._day_entry.pack(side="left")
+
+        ctk.CTkLabel(
+            fields_start,
+            text="/",
+            font=(self.FONT, 14),
+            text_color=self.FG3,
+            fg_color=self.BG2,
+        ).pack(side="left", padx=4)
+
+        self._month_entry = self._date_field(fields_start, self._month, 4)
+        self._month_entry.pack(side="left")
+
+        ctk.CTkLabel(
+            fields_start,
+            text="/",
+            font=(self.FONT, 14),
+            text_color=self.FG3,
+            fg_color=self.BG2,
+        ).pack(side="left", padx=4)
+
+        self._year_entry = self._date_field(fields_start, self._year, 6)
+        self._year_entry.pack(side="left")
+
+        # End date card
+        end = ctk.CTkFrame(row, fg_color=self.BG2, corner_radius=8)
+        end.grid(row=0, column=1, sticky="ew", padx=(8, 0))
+
+        ctk.CTkLabel(
+            end,
+            text="End Date",
+            font=(self.FONT, 10),
+            text_color=self.FG3,
+            anchor="w",
+        ).pack(anchor="w", padx=14, pady=(8, 2))
+
+        fields_end = ctk.CTkFrame(end, fg_color=self.BG2, corner_radius=0)
+        fields_end.pack(fill="x", padx=14, pady=(0, 10))
+
+        self._eday = StringVar(value=parts[0])
+        self._emonth = StringVar(value=parts[1])
+        self._eyear = StringVar(value=parts[2])
+
+        self._eday.trace("w", self._limit_eday)
+        self._emonth.trace("w", self._limit_emonth)
+        self._eyear.trace("w", self._limit_eyear)
+
+        self._eday_entry = self._date_field(fields_end, self._eday, 4)
+        self._eday_entry.pack(side="left")
+
+        ctk.CTkLabel(
+            fields_end,
+            text="/",
+            font=(self.FONT, 14),
+            text_color=self.FG3,
+            fg_color=self.BG2,
+        ).pack(side="left", padx=4)
+
+        self._emonth_entry = self._date_field(fields_end, self._emonth, 4)
+        self._emonth_entry.pack(side="left")
+
+        ctk.CTkLabel(
+            fields_end,
+            text="/",
+            font=(self.FONT, 14),
+            text_color=self.FG3,
+            fg_color=self.BG2,
+        ).pack(side="left", padx=4)
+
+        self._eyear_entry = self._date_field(fields_end, self._eyear, 6)
+        self._eyear_entry.pack(side="left")
+
+    def _date_field(
+        self, parent: ctk.CTkFrame, var: StringVar, width: int
+    ) -> ctk.CTkEntry:
+        return ctk.CTkEntry(
+            parent,
+            textvariable=var,
+            width=width * 10,
+            font=(self.FONT, 13, "bold"),
+            justify="center",
+            fg_color=self.BG3,
+            text_color=self.FG,
+            border_width=0,
+            corner_radius=6,
         )
 
-        if ask_open_folder:
-            open_folder(out_dir)
+    def _limit_day(self, *args: object) -> None:
+        v = self._day.get()
+        if v and (not v.isdigit() or int(v) > 31):
+            self._day.set("")
+        elif len(v) > 2:
+            self._day.set(v[:2])
+        elif len(v) == 2:
+            self._month_entry.focus()
+            self._month_entry.icursor("end")
 
-    status_label_var.set("Status: Completed")
-    GetDataBtn.config(state="normal")
+    def _limit_month(self, *args: object) -> None:
+        v = self._month.get()
+        if v and (not v.isdigit() or int(v) > 12):
+            self._month.set("")
+        elif len(v) > 2:
+            self._month.set(v[:2])
+        elif len(v) == 2:
+            self._year_entry.focus()
+            self._year_entry.icursor("end")
+
+    def _limit_year(self, *args: object) -> None:
+        v = self._year.get()
+        if v and not v.isdigit():
+            self._year.set("")
+        elif len(v) > 4:
+            self._year.set(v[:4])
+        elif len(v) == 4:
+            self._eday_entry.focus()
+            self._eday_entry.icursor("end")
+
+    def _limit_eday(self, *args: object) -> None:
+        v = self._eday.get()
+        if v and (not v.isdigit() or int(v) > 31):
+            self._eday.set("")
+        elif len(v) > 2:
+            self._eday.set(v[:2])
+        elif len(v) == 2:
+            self._emonth_entry.focus()
+            self._emonth_entry.icursor("end")
+
+    def _limit_emonth(self, *args: object) -> None:
+        v = self._emonth.get()
+        if v and (not v.isdigit() or int(v) > 12):
+            self._emonth.set("")
+        elif len(v) > 2:
+            self._emonth.set(v[:2])
+        elif len(v) == 2:
+            self._eyear_entry.focus()
+            self._eyear_entry.icursor("end")
+
+    def _limit_eyear(self, *args: object) -> None:
+        v = self._eyear.get()
+        if v and not v.isdigit():
+            self._eyear.set("")
+        elif len(v) > 4:
+            self._eyear.set(v[:4])
+
+    def _build_output_section(self) -> None:
+        outer = ctk.CTkFrame(self.root, fg_color=self.BG, corner_radius=0)
+        outer.pack(fill="x", padx=36, pady=(16, 0))
+
+        ctk.CTkLabel(
+            outer,
+            text="OUTPUT",
+            font=(self.FONT, 10, "bold"),
+            text_color=self.FG3,
+            anchor="w",
+        ).pack(anchor="w", pady=(0, 6))
+
+        row = ctk.CTkFrame(outer, fg_color=self.BG, corner_radius=0)
+        row.pack(fill="x")
+
+        # Folder path display
+        self._folder_label = ctk.CTkLabel(
+            row,
+            text="",
+            font=(self.FONT, 12),
+            text_color=self.FG2,
+            fg_color=self.BG2,
+            anchor="w",
+            corner_radius=8,
+            height=40,
+        )
+        self._folder_label.pack(side="left", fill="x", expand=True, ipady=4)
+
+        # Browse button
+        ctk.CTkButton(
+            row,
+            text="Browse",
+            font=(self.FONT, 12),
+            fg_color=self.BG3,
+            text_color=self.FG2,
+            hover_color="#3a3a3a",
+            corner_radius=8,
+            width=88,
+            height=40,
+            command=self._get_folder_path,
+        ).pack(side="left", padx=(8, 0))
+
+        # Format dropdown
+        self._format_var = StringVar(value=self._cfg.get("format", "TXT"))
+        self._format_dropdown = ctk.CTkComboBox(
+            row,
+            variable=self._format_var,
+            values=["TXT", "CSV"],
+            font=(self.FONT, 12, "bold"),
+            fg_color=self.BG3,
+            text_color=self.FG,
+            button_color=self.BG3,
+            button_hover_color="#3a3a3a",
+            border_color=self.BG3,
+            dropdown_fg_color=self.BG3,
+            dropdown_text_color=self.FG,
+            dropdown_hover_color="#3a3a3a",
+            corner_radius=8,
+            width=80,
+            height=40,
+            state="readonly",
+            command=self._on_format_change,
+        )
+        self._format_dropdown.pack(side="left", padx=(8, 0))
+
+        # Load saved folder path
+        saved_path = self._cfg.get("DirPath", str(Path.cwd()))
+        self._folder_label.configure(text=f"  {saved_path}")
+        self._current_folder = saved_path
+
+    def _get_folder_path(self) -> None:
+        path = filedialog.askdirectory(title="Select Output Folder")
+        if path:
+            self._folder_label.configure(text=f"  {path}")
+            self._current_folder = path
+            self._cfg["DirPath"] = path
+            save_config(self._cfg)
+
+    def _on_format_change(self, value: str) -> None:
+        self._cfg["format"] = value
+        save_config(self._cfg)
+
+    def _build_progress(self) -> None:
+        outer = ctk.CTkFrame(self.root, fg_color=self.BG, corner_radius=0)
+        outer.pack(fill="x", padx=36, pady=(16, 0))
+
+        self._progress = ctk.CTkProgressBar(
+            outer,
+            orientation="horizontal",
+            mode="determinate",
+            height=6,
+            corner_radius=3,
+            fg_color=self.BG2,
+            progress_color="#4CAF50",
+        )
+        self._progress.pack(fill="x")
+        self._progress.set(0)
+
+    def _build_buttons(self) -> None:
+        outer = ctk.CTkFrame(self.root, fg_color=self.BG, corner_radius=0)
+        outer.pack(fill="x", padx=36, pady=(12, 0))
+
+        self._get_data_btn = ctk.CTkButton(
+            outer,
+            text="↓  Get Data",
+            font=(self.FONT, 13, "bold"),
+            fg_color=self.ACCENT,
+            text_color=self.ACCENT_FG,
+            hover_color="#2a5a2a",
+            corner_radius=8,
+            height=40,
+            command=self._start_download,
+        )
+        self._get_data_btn.pack(side="left", fill="x", expand=True)
+
+        ctk.CTkButton(
+            outer,
+            text="Clear Logs",
+            font=(self.FONT, 13),
+            fg_color=self.BG3,
+            text_color=self.FG2,
+            hover_color="#3a3a3a",
+            corner_radius=8,
+            height=40,
+            command=self._clear_logs,
+        ).pack(side="left", fill="x", expand=True, padx=(8, 0))
+
+        ctk.CTkButton(
+            outer,
+            text="⚙  Settings",
+            font=(self.FONT, 13),
+            fg_color=self.BG3,
+            text_color=self.FG2,
+            hover_color="#3a3a3a",
+            corner_radius=8,
+            height=40,
+            command=lambda: SettingsWindow(self.root),
+        ).pack(side="left", fill="x", expand=True, padx=(8, 0))
+
+        ctk.CTkButton(
+            outer,
+            text="Exit",
+            font=(self.FONT, 13),
+            fg_color=self.BG3,
+            text_color=self.FG2,
+            hover_color="#3a3a3a",
+            corner_radius=8,
+            height=40,
+            command=self.root.destroy,
+        ).pack(side="left", fill="x", expand=True, padx=(8, 0))
+
+    def _build_logs(self) -> None:
+        outer = ctk.CTkFrame(self.root, fg_color=self.BG, corner_radius=0)
+        outer.pack(fill="both", expand=True, padx=36, pady=(16, 0))
+
+        ctk.CTkLabel(
+            outer,
+            text="APPLICATION LOGS",
+            font=(self.FONT, 10, "bold"),
+            text_color=self.FG3,
+            anchor="w",
+        ).pack(anchor="w", pady=(0, 6))
+
+        self._log_box = ctk.CTkTextbox(
+            outer,
+            font=("JetBrains Mono", 11),
+            fg_color="#0f0f0f",
+            text_color="#d4d4d4",
+            corner_radius=8,
+            wrap="none",
+            state="disabled",
+        )
+        self._log_box.pack(fill="both", expand=True)
+
+        self._log_box.tag_config("ERROR", foreground="#ff4d4d")
+        self._log_box.tag_config("WARNING", foreground="#ffa500")
+
+    def _build_statusbar(self) -> None:
+        bar = ctk.CTkFrame(
+            self.root,
+            fg_color=self.SEP,
+            height=32,
+            corner_radius=0,
+        )
+        bar.pack(fill="x", side="bottom")
+        bar.pack_propagate(False)
+
+        self._status_var = StringVar(value="Status: Ready")
+
+        ctk.CTkLabel(
+            bar,
+            textvariable=self._status_var,
+            font=(self.FONT, 11),
+            text_color=self.FG3,
+            anchor="w",
+        ).pack(side="left", padx=16)
+
+        ctk.CTkLabel(
+            bar,
+            text="By Aric Kaji",
+            font=(self.FONT, 11),
+            text_color=self.FG3,
+            anchor="e",
+        ).pack(side="right", padx=16)
+
+    def _connect_logger(self) -> None:
+        handler = TkinterLogHandler(self._log_box)
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        logger.propagate = False
+
+    def _clear_logs(self) -> None:
+        self._log_box.configure(state="normal")
+        self._log_box.delete("1.0", "end")
+        self._log_box.configure(state="disabled")
+
+    def _start_download(self) -> None:
+        thread = threading.Thread(target=self._handle_get_data)
+        thread.daemon = True
+        thread.start()
+
+    def _handle_get_data(self) -> None:
+        self._get_data_btn.configure(state="disabled")
+        self._status_var.set("Status: Downloading data...")
+        self.root.update_idletasks()
+
+        starting_date = (
+            self._year.get() + "-" + self._month.get() + "-" + self._day.get()
+        )
+        ending_date = (
+            self._eyear.get() + "-" + self._emonth.get() + "-" + self._eday.get()
+        )
+
+        logger.info(f"User requested download: {starting_date} -> {ending_date}")
+
+        b = GetBhavCopy(
+            starting_date,
+            ending_date,
+            self._current_folder,
+            self._format_var.get(),
+            ProgressAdapter(self._progress),
+            self.root,
+        )
+
+        try:
+            b.get_bhavcopy()
+        except ValueError as e:
+            logger.warning(f"User input error: {e}")
+            messagebox.showwarning("Invalid Input", str(e))
+            self._get_data_btn.configure(state="normal")
+            self._status_var.set("Status: Download Failed")
+            return
+        except Exception:
+            logger.exception("Unexpected download error")
+            messagebox.showerror(
+                "Download Failed",
+                "Something went wrong while downloading.\nPlease check the logs.",
+            )
+            self._get_data_btn.configure(state="normal")
+            self._status_var.set("Status: Download Failed")
+            return
+
+        self._progress.set(1.0)
+        self.root.update_idletasks()
+
+        out_dir = Path(self._current_folder)
+        skipped = getattr(b, "failed_dates", [])
+
+        message = "BhavCopy files downloaded successfully."
+        if skipped:
+            message += f"\n\nSkipped dates (holiday/unavailable): {len(skipped)}"
+
+        if messagebox.showinfo("GetBhavCopy", message):
+            self._progress.set(0.0)
+            if messagebox.askyesno(
+                "GetBhavCopy", "Do you want to open the download folder?"
+            ):
+                open_folder(out_dir)
+
+        self._status_var.set("Status: Completed")
+        self._get_data_btn.configure(state="normal")
 
 
-root = Tk()
-root.title("GetBhavCopy Downloader - NSE EQ Cash Segment - By Aric Kaji")
-# root.geometry("700x550")
-root.geometry("820x650")
-# root.minsize(850, 600)
-root.configure(bg="#1e1e1e")
-width = 700  # Width
-height = 550  # Height
-
-screen_width = root.winfo_screenwidth()  # Width of the screen
-screen_height = root.winfo_screenheight()  # Height of the screen
-
-# Calculate Starting X and Y coordinates for Window
-x = (screen_width / 2) - (width / 2)
-y = (screen_height / 2) - (height / 2)
-
-root.geometry(f"{width + 3}x{height}+{int(x)}+{int(y)}")
-root.resizable(False, False)
-
-# ================= MAIN CONTAINER =================
-main = Frame(root, bg="#1e1e1e", width=width, height=height)
-main.pack(fill="both", expand=True, padx=30, pady=20)
-
-# ================= TITLE =================
-title = Label(
-    main,
-    text="GetBhavCopy Downloader",
-    font=("SF Pro", 26, "bold"),
-    fg="white",
-    bg="#1e1e1e",
-)
-title.pack(pady=(0, 5))
-
-subtitle = Label(
-    main,
-    text="NSE Equity & Indices Data Extraction Tool",
-    font=("SF Pro", 13),
-    fg="#bbbbbb",
-    bg="#1e1e1e",
-)
-subtitle.pack(pady=(0, 5))
-
-# ================= DATE FRAME =================
-date_frame = LabelFrame(
-    main,
-    text=" Date Range ",
-    font=("SF Pro", 12, "bold"),
-    fg="white",
-    bg="#1e1e1e",
-    labelanchor="n",
-)
-date_frame.pack(fill="x", pady=5, ipady=5)
-
-date_frame.columnconfigure(0, weight=1)
-date_frame.columnconfigure(1, weight=1)
-
-# Start Date
-start_frame = Frame(date_frame, bg="#1e1e1e")
-start_frame.grid(row=0, column=0, padx=20)
-
-Label(start_frame, text="Start Date", bg="#1e1e1e", fg="white").pack(pady=5)
-
-currentDate = datetime.today().strftime("%d-%m-%Y")
-
-day = StringVar()  # date
-day.trace("w", limitSizeDay)
-day_entry = Entry(
-    start_frame, textvariable=day, width=4, font=("SF Pro", 12, "bold"), justify=CENTER
-)
-# day_entry.place(x=width-480, y=height-207)
-day.set(currentDate.split("-")[0])
-
-month = StringVar()  # month
-month.trace("w", limitSizeMonth)
-month_entry = Entry(
-    start_frame,
-    textvariable=month,
-    width=4,
-    font=("SF Pro", 12, "bold"),
-    justify=CENTER,
-)
-# month_entry.place(x=width-440, y=height-207)
-month.set(currentDate.split("-")[1])
-
-year = StringVar()  # year
-year.trace("w", limitSizeYear)
-year_entry = Entry(
-    start_frame, textvariable=year, width=6, font=("SF Pro", 12, "bold"), justify=CENTER
-)
-# year_entry.place(x=width-400, y=height-207)
-# year_entry.bind("<Return>" , GetData)
-year.set(currentDate.split("-")[2])
-
-day_entry.pack(in_=start_frame, side="left", padx=5)
-month_entry.pack(in_=start_frame, side="left", padx=5)
-year_entry.pack(in_=start_frame, side="left", padx=5)
-
-# End Date
-end_frame = Frame(date_frame, bg="#1e1e1e")
-end_frame.grid(row=0, column=1, padx=20)
-
-Label(end_frame, text="End Date", bg="#1e1e1e", fg="white").pack(pady=5)
-
-Endday = StringVar()  # date
-Endday.trace("w", EndlimitSizeDay)
-Endday_entry = Entry(
-    end_frame, textvariable=Endday, width=4, font=("SF Pro", 12, "bold"), justify=CENTER
-)
-# Endday_entry.place(x=width-205, y=height-207)
-Endday.set(currentDate.split("-")[0])
-
-Endmonth = StringVar()  # month
-Endmonth.trace("w", EndlimitSizeMonth)
-Endmonth_entry = Entry(
-    end_frame,
-    textvariable=Endmonth,
-    width=4,
-    font=("SF Pro", 12, "bold"),
-    justify=CENTER,
-)
-# Endmonth_entry.place(x=width-165, y=height-207)
-Endmonth.set(currentDate.split("-")[1])
-
-Endyear = StringVar()  # year
-Endyear.trace("w", EndlimitSizeYear)
-Endyear_entry = Entry(
-    end_frame,
-    textvariable=Endyear,
-    width=6,
-    font=("SF Pro", 12, "bold"),
-    justify=CENTER,
-)
-# Endyear_entry.place(x=width-125, y=height-207)
-Endyear.set(currentDate.split("-")[2])
-
-Endday_entry.pack(in_=end_frame, side="left", padx=5)
-Endmonth_entry.pack(in_=end_frame, side="left", padx=5)
-Endyear_entry.pack(in_=end_frame, side="left", padx=5)
-
-# ================= FOLDER FRAME =================
-folder_frame = LabelFrame(main, text=" Output Folder ", font=("SF Pro", 12, "bold"))
-folder_frame.pack(fill="x", pady=5)
-
-folder_frame.columnconfigure(1, weight=1)
-
-FolderPathLabel = Label(folder_frame, text="Folder Path :", font=("SF Pro", 14))
-# FolderPathLabel.place(x=width-580, y=height-160)
-
-FolderPathButton = Button(
-    folder_frame,
-    text="Select Folder",
-    font=("SF Pro", 10),
-    command=GetFolderPath,
-)
-# FolderPathButton.place(x=width-450, y=height-160)
-
-FolderPathAnswer = Label(folder_frame, font=("SF Pro", 12, "bold"))
-# FolderPathAnswer.place(x=width-350, y=height-160)
-
-format_var = StringVar(value="TXT")
-format_dropdown = ttk.Combobox(
-    folder_frame,
-    textvariable=format_var,
-    font=("SF Pro", 12, "bold"),
-    values=["TXT", "CSV"],
-    width=4,
-    state="readonly",
-)
-
-FolderPathButton.grid(in_=folder_frame, row=0, column=0, padx=5, pady=5)
-FolderPathAnswer.grid(in_=folder_frame, row=0, column=1, sticky="w")
-format_dropdown.grid(in_=folder_frame, row=0, column=2, padx=20)
-
-config_file = load_config()  # Loading config for saved dir path
-FolderPathAnswer["text"] = config_file.get("DirPath", str(Path.cwd()))
-
-# ================= PROGRESS =================
-s = Style()
-s.theme_use("alt")
-s.configure("TProgressbar", thickness=25, background="#4CAF50", troughcolor="#2b2b2b")
-
-pb = ttk.Progressbar(
-    main,
-    orient="horizontal",
-    mode="determinate",
-    length=570,
-    style="TProgressbar",
-    maximum=100,
-)
-
-pb.pack(in_=main, fill="x", pady=10)
-
-# ================= BUTTON FRAME =================
-button_frame = Frame(main, bg="#1e1e1e")
-button_frame.pack(fill="x")
-
-GetDataBtn = Button(
-    button_frame,
-    text="Get Data",
-    font=("SF Pro", 12, "bold"),
-    width=20,
-    relief=GROOVE,
-    bg="#1e1e1e",
-    command=start_download,
-)
-# GetDataBtn.place(x=width-580, y=height-80)
-
-ExitBtn = Button(
-    button_frame,
-    text="Exit",
-    font=("SF Pro", 12, "bold"),
-    width=20,
-    relief=GROOVE,
-    bg="#1e1e1e",
-    command=root.destroy,
-)
-# ExitBtn.place(x=width-580, y=height-50)
-
-ClearLogBtn = Button(
-    button_frame,
-    text="Clear Logs",
-    font=("SF Pro", 12, "bold"),
-    relief=GROOVE,
-    bg="#1e1e1e",
-    command=clear_logs,
-)
-
-SettingsBtn = Button(
-    button_frame,
-    text="Settings",
-    font=("SF Pro", 12, "bold"),
-    relief=GROOVE,
-    command=lambda: SettingsWindow(root),
-)
-
-GetDataBtn.pack(side="left", fill="x", expand=True, padx=8)
-ClearLogBtn.pack(side="left", fill="x", expand=True, padx=10)
-SettingsBtn.pack(side="left", fill="x", expand=True, padx=5)
-ExitBtn.pack(side="left", fill="x", expand=True, padx=5)
-
-# ================= LOG FRAME =================
-log_frame = LabelFrame(
-    main,
-    text=" Application Logs ",
-    font=("SF Pro", 12, "bold"),
-    fg="white",
-    bg="#1e1e1e",
-)
-log_frame.pack(fill="both", expand=True, pady=20)
-
-log_box = ScrolledText(
-    log_frame,
-    height=10,
-    bg="#0f0f0f",
-    fg="#d4d4d4",
-    insertbackground="white",
-    font=("JetBrains Mono", 10),
-    state="normal",
-)
-
-log_box.pack(fill="both", expand=True)
-
-log_box.tag_config("ERROR", foreground="#ff4d4d")
-log_box.tag_config("WARNING", foreground="#ffa500")
-
-log_box.config(
-    bg="#0f0f0f", fg="#d4d4d4", insertbackground="white", font=("JetBrains Mono", 10)
-)
-
-
-status_label_var = StringVar()
-status_label_var.set("Status: Ready")
-
-status_bar_label = Label(
-    main,
-    textvariable=status_label_var,
-    bg="#1e1e1e",
-    fg="white",
-    anchor="center",
-    font=("SF Pro", 13),
-)
-
-status_bar_label.pack(fill="x", side="bottom")
-
-# ===== CONNECT LOGGER TO UI =====
-logger = logging.getLogger("getbhavcopy")
-
-ui_handler = TkinterLogHandler(log_box)
-
-ui_handler.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
-
-ui_handler.setFormatter(formatter)
-
-logger.addHandler(ui_handler)
-logger.propagate = False
-
-logger.info("UI logging initialized successfully.")
-# logger.warning("Logger test warning.")
-# logger.error("Logger test error.")
-
-root.mainloop()
+if __name__ == "__main__":
+    app = App()
+    app.run()
