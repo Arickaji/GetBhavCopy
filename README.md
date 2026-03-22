@@ -9,12 +9,6 @@
 
 ![GetBhavCopy](docs/assets/screenshot-hero.png)
 
-| Dark Theme | Light Theme |
-|---|---|
-| ![Dark](docs/assets/screenshot-dark.png) | ![Light](docs/assets/screenshot-light.png) |
-```
----
-
 ## What is GetBhavCopy?
 
 GetBhavCopy is a desktop tool that downloads NSE (National Stock Exchange India) bhavcopy data for equity and indices. It is built for traders who use tools like AmiBroker and need clean, reliable OHLCV data — without manually visiting the NSE website every day.
