@@ -67,12 +67,14 @@ class TkinterLogHandler(logging.Handler):
         def append() -> None:
             self.text_widget.configure(state="normal")
             if record.levelno >= logging.ERROR:
-                self.text_widget.insert("end", msg + "\n", "ERROR")
+                self.text_widget._textbox.insert("end", msg + "\n", "ERROR")
             elif record.levelno >= logging.WARNING:
-                self.text_widget.insert("end", msg + "\n", "WARNING")
+                self.text_widget._textbox.insert("end", msg + "\n", "WARNING")
+            elif "successfully" in msg.lower() or "completed" in msg.lower():
+                self.text_widget._textbox.insert("end", msg + "\n", "SUCCESS")
             else:
-                self.text_widget.insert("end", msg + "\n")
-            self.text_widget.see("end")
+                self.text_widget._textbox.insert("end", msg + "\n")
+            self.text_widget._textbox.see("end")
             self.text_widget.configure(state="disabled")
 
         self.text_widget.after(0, append)
@@ -88,16 +90,44 @@ class ProgressAdapter:
 
 
 class App:
-    # ── Colours ───────────────────────────────────────────────────────
-    BG = "#1a1a1a"
-    BG2 = "#232323"
-    BG3 = "#2d2d2d"
-    FG = "#ffffff"
-    FG2 = "#aaaaaa"
-    FG3 = "#666666"
-    SEP = "#2a2a2a"
-    ACCENT = "#1a3a1a"
-    ACCENT_FG = "#80ff80"
+    DARK = {
+        "BG": "#1a1a1a",
+        "BG2": "#232323",
+        "BG3": "#2d2d2d",
+        "FG": "#ffffff",
+        "FG2": "#aaaaaa",
+        "FG3": "#666666",
+        "SEP": "#2a2a2a",
+        "ACCENT": "#1a3a1a",
+        "ACCENT_FG": "#80ff80",
+        "ACCENT_HOVER": "#2a5a2a",
+        "BTN_HOVER": "#3a3a3a",
+        "LOG_BG": "#0f0f0f",
+        "LOG_FG": "#d4d4d4",
+        "LOG_ERROR": "#ff4d4d",
+        "LOG_WARNING": "#ffa500",
+        "LOG_SUCCESS": "#4CAF50",
+    }
+
+    LIGHT = {
+        "BG": "#f5f5f5",
+        "BG2": "#ffffff",
+        "BG3": "#f0f0f0",
+        "FG": "#111111",
+        "FG2": "#444444",
+        "FG3": "#888888",
+        "SEP": "#dddddd",
+        "ACCENT": "#1a5a1a",
+        "ACCENT_FG": "#ffffff",
+        "ACCENT_HOVER": "#2a7a2a",
+        "BTN_HOVER": "#e0e0e0",
+        "LOG_BG": "#ffffff",
+        "LOG_FG": "#222222",
+        "LOG_ERROR": "#cc0000",
+        "LOG_WARNING": "#b36200",
+        "LOG_SUCCESS": "#2a7a2a",
+    }
+
     FONT = (
         "SF Pro"
         if sys.platform == "darwin"
@@ -109,17 +139,27 @@ class App:
     def __init__(self) -> None:
         self.root = ctk.CTk()
         self.root.title("GetBhavCopy Downloader - NSE EQ Cash Segment - By Aric Kaji")
-        # self.root.resizable(False, False)
-        self.root.configure(fg_color=self.BG)
-
         self._cfg = load_config()
+        saved = self._cfg.get("theme", "system")
+        if saved == "light":
+            self._palette = self.LIGHT
+        elif saved == "dark":
+            self._palette = self.DARK
+        else:
+            import darkdetect
+
+            self._palette = self.LIGHT if darkdetect.isLight() else self.DARK
         self._apply_theme(self._cfg.get("theme", "system"))
+        self.root.configure(fg_color=self._c("BG"))
         self._center_window(720, 600)
 
         self._build_ui()
         self._connect_logger()
 
         logger.info("UI logging initialized successfully.")
+
+    def _c(self, key: str) -> str:
+        return self._palette[key]
 
     def _apply_theme(self, mode: str) -> None:
         ctk.set_appearance_mode(mode)
@@ -147,21 +187,22 @@ class App:
         self._build_logs()
 
     def _build_titlebar(self) -> None:
-        bar = ctk.CTkFrame(self.root, fg_color=self.SEP, height=1, corner_radius=0)
+        bar = ctk.CTkFrame(
+            self.root, fg_color=self._c("SEP"), height=1, corner_radius=0
+        )
         bar.pack(fill="x", padx=0, pady=0)
 
-        main = ctk.CTkFrame(self.root, fg_color=self.BG, corner_radius=0)
+        main = ctk.CTkFrame(self.root, fg_color=self._c("BG"), corner_radius=0)
         main.pack(fill="x", padx=36, pady=(20, 0))
 
-        # Left — app name and subtitle
-        left = ctk.CTkFrame(main, fg_color=self.BG, corner_radius=0)
+        left = ctk.CTkFrame(main, fg_color=self._c("BG"), corner_radius=0)
         left.pack(side="left", fill="x", expand=True)
 
         ctk.CTkLabel(
             left,
             text="GetBhavCopy",
             font=(self.FONT, 22, "bold"),
-            text_color=self.FG,
+            text_color=self._c("FG"),
             anchor="w",
         ).pack(anchor="w")
 
@@ -169,21 +210,28 @@ class App:
             left,
             text="NSE Equity & Indices Data Extraction Tool",
             font=(self.FONT, 12),
-            text_color=self.FG3,
+            text_color=self._c("FG3"),
             anchor="w",
         ).pack(anchor="w")
 
-        # Right — theme toggle and version badge
-        right = ctk.CTkFrame(main, fg_color=self.BG, corner_radius=0)
+        right = ctk.CTkFrame(main, fg_color=self._c("BG"), corner_radius=0)
         right.pack(side="right")
+
+        saved_theme = self._cfg.get("theme", "system")
+        if saved_theme == "dark":
+            btn_text = "☾ Dark"
+        elif saved_theme == "light":
+            btn_text = "☀ Light"
+        else:
+            btn_text = "⚙ System"
 
         self._theme_btn = ctk.CTkButton(
             right,
-            text="☀ Light",
+            text=btn_text,
             font=(self.FONT, 11),
-            fg_color=self.BG3,
-            text_color=self.FG2,
-            hover_color="#3a3a3a",
+            fg_color=self._c("BG3"),
+            text_color=self._c("FG2"),
+            hover_color=self._c("BTN_HOVER"),
             corner_radius=6,
             width=80,
             height=28,
@@ -195,62 +243,71 @@ class App:
             right,
             text="v1.0.5",
             font=(self.FONT, 11),
-            fg_color=self.BG3,
-            text_color=self.FG3,
+            fg_color=self._c("BG3"),
+            text_color=self._c("FG3"),
             corner_radius=6,
             width=60,
             height=28,
         ).pack(side="right")
 
-        # Separator line below header
-        ctk.CTkFrame(self.root, fg_color=self.SEP, height=1, corner_radius=0).pack(
-            fill="x", padx=36, pady=(12, 0)
-        )
+        ctk.CTkFrame(
+            self.root, fg_color=self._c("SEP"), height=1, corner_radius=0
+        ).pack(fill="x", padx=36, pady=(12, 0))
 
     def _toggle_theme(self) -> None:
         current = self._cfg.get("theme", "system")
         if current == "dark":
             new_theme = "light"
             btn_text = "☀ Light"
+            self._palette = self.LIGHT
         elif current == "light":
             new_theme = "system"
             btn_text = "⚙ System"
+            self._palette = self.DARK
         else:
             new_theme = "dark"
             btn_text = "☾ Dark"
+            self._palette = self.DARK
         self._apply_theme(new_theme)
         self._theme_btn.configure(text=btn_text)
+        self._refresh_ui()
+
+    def _refresh_ui(self) -> None:
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        self.root.configure(fg_color=self._c("BG"))
+        self._build_ui()
+        self._connect_logger()
 
     def _build_date_section(self) -> None:
-        outer = ctk.CTkFrame(self.root, fg_color=self.BG, corner_radius=0)
+        outer = ctk.CTkFrame(self.root, fg_color=self._c("BG"), corner_radius=0)
         outer.pack(fill="x", padx=36, pady=(16, 0))
 
         ctk.CTkLabel(
             outer,
             text="DATE RANGE",
             font=(self.FONT, 10, "bold"),
-            text_color=self.FG3,
+            text_color=self._c("FG3"),
             anchor="w",
         ).pack(anchor="w", pady=(0, 6))
 
-        row = ctk.CTkFrame(outer, fg_color=self.BG, corner_radius=0)
+        row = ctk.CTkFrame(outer, fg_color=self._c("BG"), corner_radius=0)
         row.pack(fill="x")
         row.columnconfigure(0, weight=1)
         row.columnconfigure(1, weight=1)
 
-        # Start date card
-        start = ctk.CTkFrame(row, fg_color=self.BG2, corner_radius=8)
+        start = ctk.CTkFrame(row, fg_color=self._c("BG2"), corner_radius=8)
         start.grid(row=0, column=0, sticky="ew", padx=(0, 8))
 
         ctk.CTkLabel(
             start,
             text="Start Date",
             font=(self.FONT, 10),
-            text_color=self.FG3,
+            text_color=self._c("FG3"),
             anchor="w",
         ).pack(anchor="w", padx=14, pady=(8, 2))
 
-        fields_start = ctk.CTkFrame(start, fg_color=self.BG2, corner_radius=0)
+        fields_start = ctk.CTkFrame(start, fg_color=self._c("BG2"), corner_radius=0)
         fields_start.pack(fill="x", padx=14, pady=(0, 10))
 
         currentDate = datetime.today().strftime("%d-%m-%Y")
@@ -271,8 +328,8 @@ class App:
             fields_start,
             text="/",
             font=(self.FONT, 14),
-            text_color=self.FG3,
-            fg_color=self.BG2,
+            text_color=self._c("FG3"),
+            fg_color=self._c("BG2"),
         ).pack(side="left", padx=4)
 
         self._month_entry = self._date_field(fields_start, self._month, 4)
@@ -282,26 +339,25 @@ class App:
             fields_start,
             text="/",
             font=(self.FONT, 14),
-            text_color=self.FG3,
-            fg_color=self.BG2,
+            text_color=self._c("FG3"),
+            fg_color=self._c("BG2"),
         ).pack(side="left", padx=4)
 
         self._year_entry = self._date_field(fields_start, self._year, 6)
         self._year_entry.pack(side="left")
 
-        # End date card
-        end = ctk.CTkFrame(row, fg_color=self.BG2, corner_radius=8)
+        end = ctk.CTkFrame(row, fg_color=self._c("BG2"), corner_radius=8)
         end.grid(row=0, column=1, sticky="ew", padx=(8, 0))
 
         ctk.CTkLabel(
             end,
             text="End Date",
             font=(self.FONT, 10),
-            text_color=self.FG3,
+            text_color=self._c("FG3"),
             anchor="w",
         ).pack(anchor="w", padx=14, pady=(8, 2))
 
-        fields_end = ctk.CTkFrame(end, fg_color=self.BG2, corner_radius=0)
+        fields_end = ctk.CTkFrame(end, fg_color=self._c("BG2"), corner_radius=0)
         fields_end.pack(fill="x", padx=14, pady=(0, 10))
 
         self._eday = StringVar(value=parts[0])
@@ -319,8 +375,8 @@ class App:
             fields_end,
             text="/",
             font=(self.FONT, 14),
-            text_color=self.FG3,
-            fg_color=self.BG2,
+            text_color=self._c("FG3"),
+            fg_color=self._c("BG2"),
         ).pack(side="left", padx=4)
 
         self._emonth_entry = self._date_field(fields_end, self._emonth, 4)
@@ -330,8 +386,8 @@ class App:
             fields_end,
             text="/",
             font=(self.FONT, 14),
-            text_color=self.FG3,
-            fg_color=self.BG2,
+            text_color=self._c("FG3"),
+            fg_color=self._c("BG2"),
         ).pack(side="left", padx=4)
 
         self._eyear_entry = self._date_field(fields_end, self._eyear, 6)
@@ -346,8 +402,8 @@ class App:
             width=width * 10,
             font=(self.FONT, 13, "bold"),
             justify="center",
-            fg_color=self.BG3,
-            text_color=self.FG,
+            fg_color=self._c("BG3"),
+            text_color=self._c("FG"),
             border_width=0,
             corner_radius=6,
         )
@@ -410,62 +466,59 @@ class App:
             self._eyear.set(v[:4])
 
     def _build_output_section(self) -> None:
-        outer = ctk.CTkFrame(self.root, fg_color=self.BG, corner_radius=0)
+        outer = ctk.CTkFrame(self.root, fg_color=self._c("BG"), corner_radius=0)
         outer.pack(fill="x", padx=36, pady=(16, 0))
 
         ctk.CTkLabel(
             outer,
             text="OUTPUT",
             font=(self.FONT, 10, "bold"),
-            text_color=self.FG3,
+            text_color=self._c("FG3"),
             anchor="w",
         ).pack(anchor="w", pady=(0, 6))
 
-        row = ctk.CTkFrame(outer, fg_color=self.BG, corner_radius=0)
+        row = ctk.CTkFrame(outer, fg_color=self._c("BG"), corner_radius=0)
         row.pack(fill="x")
 
-        # Folder path display
         self._folder_label = ctk.CTkLabel(
             row,
             text="",
             font=(self.FONT, 12),
-            text_color=self.FG2,
-            fg_color=self.BG2,
+            text_color=self._c("FG2"),
+            fg_color=self._c("BG2"),
             anchor="w",
             corner_radius=8,
             height=40,
         )
         self._folder_label.pack(side="left", fill="x", expand=True, ipady=4)
 
-        # Browse button
         ctk.CTkButton(
             row,
             text="Browse",
             font=(self.FONT, 12),
-            fg_color=self.BG3,
-            text_color=self.FG2,
-            hover_color="#3a3a3a",
+            fg_color=self._c("BG3"),
+            text_color=self._c("FG2"),
+            hover_color=self._c("BTN_HOVER"),
             corner_radius=8,
             width=88,
             height=40,
             command=self._get_folder_path,
         ).pack(side="left", padx=(8, 0))
 
-        # Format dropdown
         self._format_var = StringVar(value=self._cfg.get("format", "TXT"))
         self._format_dropdown = ctk.CTkComboBox(
             row,
             variable=self._format_var,
             values=["TXT", "CSV"],
             font=(self.FONT, 12, "bold"),
-            fg_color=self.BG3,
-            text_color=self.FG,
-            button_color=self.BG3,
-            button_hover_color="#3a3a3a",
-            border_color=self.BG3,
-            dropdown_fg_color=self.BG3,
-            dropdown_text_color=self.FG,
-            dropdown_hover_color="#3a3a3a",
+            fg_color=self._c("BG3"),
+            text_color=self._c("FG"),
+            button_color=self._c("BG3"),
+            button_hover_color=self._c("BTN_HOVER"),
+            border_color=self._c("BG3"),
+            dropdown_fg_color=self._c("BG3"),
+            dropdown_text_color=self._c("FG"),
+            dropdown_hover_color=self._c("BTN_HOVER"),
             corner_radius=8,
             width=80,
             height=40,
@@ -474,7 +527,6 @@ class App:
         )
         self._format_dropdown.pack(side="left", padx=(8, 0))
 
-        # Load saved folder path
         saved_path = self._cfg.get("DirPath", str(Path.cwd()))
         self._folder_label.configure(text=f"  {saved_path}")
         self._current_folder = saved_path
@@ -492,7 +544,7 @@ class App:
         save_config(self._cfg)
 
     def _build_progress(self) -> None:
-        outer = ctk.CTkFrame(self.root, fg_color=self.BG, corner_radius=0)
+        outer = ctk.CTkFrame(self.root, fg_color=self._c("BG"), corner_radius=0)
         outer.pack(fill="x", padx=36, pady=(16, 0))
 
         self._progress = ctk.CTkProgressBar(
@@ -501,23 +553,23 @@ class App:
             mode="determinate",
             height=6,
             corner_radius=3,
-            fg_color=self.BG2,
-            progress_color="#4CAF50",
+            fg_color=self._c("BG2"),
+            progress_color=self._c("LOG_SUCCESS"),
         )
         self._progress.pack(fill="x")
         self._progress.set(0)
 
     def _build_buttons(self) -> None:
-        outer = ctk.CTkFrame(self.root, fg_color=self.BG, corner_radius=0)
+        outer = ctk.CTkFrame(self.root, fg_color=self._c("BG"), corner_radius=0)
         outer.pack(fill="x", padx=36, pady=(12, 0))
 
         self._get_data_btn = ctk.CTkButton(
             outer,
             text="↓  Get Data",
             font=(self.FONT, 13, "bold"),
-            fg_color=self.ACCENT,
-            text_color=self.ACCENT_FG,
-            hover_color="#2a5a2a",
+            fg_color=self._c("ACCENT"),
+            text_color=self._c("ACCENT_FG"),
+            hover_color=self._c("ACCENT_HOVER"),
             corner_radius=8,
             height=40,
             command=self._start_download,
@@ -528,9 +580,9 @@ class App:
             outer,
             text="Clear Logs",
             font=(self.FONT, 13),
-            fg_color=self.BG3,
-            text_color=self.FG2,
-            hover_color="#3a3a3a",
+            fg_color=self._c("BG3"),
+            text_color=self._c("FG2"),
+            hover_color=self._c("BTN_HOVER"),
             corner_radius=8,
             height=40,
             command=self._clear_logs,
@@ -540,9 +592,9 @@ class App:
             outer,
             text="⚙  Settings",
             font=(self.FONT, 13),
-            fg_color=self.BG3,
-            text_color=self.FG2,
-            hover_color="#3a3a3a",
+            fg_color=self._c("BG3"),
+            text_color=self._c("FG2"),
+            hover_color=self._c("BTN_HOVER"),
             corner_radius=8,
             height=40,
             command=lambda: SettingsWindow(self.root),
@@ -552,44 +604,45 @@ class App:
             outer,
             text="Exit",
             font=(self.FONT, 13),
-            fg_color=self.BG3,
-            text_color=self.FG2,
-            hover_color="#3a3a3a",
+            fg_color=self._c("BG3"),
+            text_color=self._c("FG2"),
+            hover_color=self._c("BTN_HOVER"),
             corner_radius=8,
             height=40,
             command=self.root.destroy,
         ).pack(side="left", fill="x", expand=True, padx=(8, 0))
 
     def _build_logs(self) -> None:
-        outer = ctk.CTkFrame(self.root, fg_color=self.BG, corner_radius=0)
+        outer = ctk.CTkFrame(self.root, fg_color=self._c("BG"), corner_radius=0)
         outer.pack(fill="both", expand=True, padx=36, pady=(16, 0))
 
         ctk.CTkLabel(
             outer,
             text="APPLICATION LOGS",
             font=(self.FONT, 10, "bold"),
-            text_color=self.FG3,
+            text_color=self._c("FG3"),
             anchor="w",
         ).pack(anchor="w", pady=(0, 6))
 
         self._log_box = ctk.CTkTextbox(
             outer,
             font=("JetBrains Mono", 11),
-            fg_color="#0f0f0f",
-            text_color="#d4d4d4",
+            fg_color=self._c("LOG_BG"),
+            text_color=self._c("LOG_FG"),
             corner_radius=8,
             wrap="none",
             state="disabled",
         )
         self._log_box.pack(fill="both", expand=True)
 
-        self._log_box.tag_config("ERROR", foreground="#ff4d4d")
-        self._log_box.tag_config("WARNING", foreground="#ffa500")
+        self._log_box._textbox.tag_config("ERROR", foreground=self._c("LOG_ERROR"))
+        self._log_box._textbox.tag_config("WARNING", foreground=self._c("LOG_WARNING"))
+        self._log_box._textbox.tag_config("SUCCESS", foreground=self._c("LOG_SUCCESS"))
 
     def _build_statusbar(self) -> None:
         bar = ctk.CTkFrame(
             self.root,
-            fg_color=self.SEP,
+            fg_color=self._c("SEP"),
             height=32,
             corner_radius=0,
         )
@@ -602,7 +655,7 @@ class App:
             bar,
             textvariable=self._status_var,
             font=(self.FONT, 11),
-            text_color=self.FG3,
+            text_color=self._c("FG3"),
             anchor="w",
         ).pack(side="left", padx=16)
 
@@ -610,11 +663,14 @@ class App:
             bar,
             text="By Aric Kaji",
             font=(self.FONT, 11),
-            text_color=self.FG3,
+            text_color=self._c("FG3"),
             anchor="e",
         ).pack(side="right", padx=16)
 
     def _connect_logger(self) -> None:
+        for h in logger.handlers[:]:
+            if isinstance(h, TkinterLogHandler):
+                logger.removeHandler(h)
         handler = TkinterLogHandler(self._log_box)
         handler.setLevel(logging.DEBUG)
         formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
