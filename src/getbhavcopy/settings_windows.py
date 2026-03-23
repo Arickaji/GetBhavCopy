@@ -298,6 +298,7 @@ class SettingsWindow:
             text_color=self._p["BTN_FG"],
             hover_color=self._p["BTN_HOVER"],
             corner_radius=6,
+            height=30,
             command=self.add_row,
         ).pack(side="left")
 
@@ -309,6 +310,7 @@ class SettingsWindow:
             text_color=self._p["HDR_FG"],
             hover_color=self._p["BTN_HOVER"],
             corner_radius=6,
+            height=30,
             command=self._on_close,
         ).pack(side="right", padx=(8, 0))
 
@@ -320,6 +322,7 @@ class SettingsWindow:
             text_color=self._p["SAVE_FG"],
             hover_color=self._p["SAVE_HOVER"],
             corner_radius=6,
+            height=30,
             command=self.save_mapping,
         ).pack(side="right")
 
