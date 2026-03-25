@@ -6,6 +6,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)]()
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-%23FFDD00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/AricKaji)
 
 ![GetBhavCopy](docs/assets/screenshot-hero.png)
 
@@ -51,6 +52,13 @@ Files are named by date:
 - `bhavcopy_2026-03-02.csv` (CSV format)
 
 ---
+## Download
+
+| Platform | Download | Notes |
+|---|---|---|
+| Windows | [GetBhavCopy-windows.zip](https://github.com/AricKaji/GetBhavCopy/releases/latest) | No Python required |
+| macOS | [GetBhavCopy-mac.zip](https://github.com/AricKaji/GetBhavCopy/releases/latest) | No Python required |
+| Linux | Install from source | See below |
 
 ## Installation
 

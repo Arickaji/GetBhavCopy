@@ -1,24 +1,21 @@
-name: Build & Release Windows EXE (PyInstaller onedir)
+name: Build & Release
 
 on:
   push:
     tags:
-      - "v*.*.*"   # e.g. v1.0.0
+      - "v*.*.*"
   workflow_dispatch:
 
 permissions:
-  contents: write   # required to create a Release and upload assets
+  contents: write
 
 jobs:
-  build-and-release:
+  build-windows:
     runs-on: windows-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
@@ -28,22 +25,66 @@ jobs:
           pip install -e .
           pip install pyinstaller
 
-      - name: Build (PyInstaller onedir)
-        run: pyinstaller --noconfirm --clean --windowed --name getbhavcopy src/getbhavcopy/ui.py
+      - name: Build Windows exe
+        run: pyinstaller build.spec --clean --noconfirm
 
-      - name: Zip dist folder
+      - name: Zip Windows build
         run: |
-          powershell -Command "Compress-Archive -Path dist\getbhavcopy\* -DestinationPath dist\getbhavcopy-windows.zip -Force"
+          powershell -Command "Compress-Archive -Path dist\GetBhavCopy.exe -DestinationPath dist\GetBhavCopy-windows.zip -Force"
 
-      - name: Upload artifact (Actions)
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: getbhavcopy-windows-zip
-          path: dist/getbhavcopy-windows.zip
+          name: GetBhavCopy-windows
+          path: dist/GetBhavCopy-windows.zip
 
-      - name: Create Release + upload asset
-        if: startsWith(github.ref, 'refs/tags/')
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pyinstaller
+
+      - name: Build Mac app
+        run: pyinstaller build.spec --clean --noconfirm
+
+      - name: Zip Mac build
+        run: |
+          cd dist
+          zip -r GetBhavCopy-mac.zip GetBhavCopy.app
+
+      - name: Upload Mac artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GetBhavCopy-mac
+          path: dist/GetBhavCopy-mac.zip
+
+  release:
+    needs: [build-windows, build-mac]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download Windows build
+        uses: actions/download-artifact@v4
+        with:
+          name: GetBhavCopy-windows
+
+      - name: Download Mac build
+        uses: actions/download-artifact@v4
+        with:
+          name: GetBhavCopy-mac
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/getbhavcopy-windows.zip
+          files: |
+            GetBhavCopy-windows.zip
+            GetBhavCopy-mac.zip
           generate_release_notes: true
