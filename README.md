@@ -52,6 +52,13 @@ Files are named by date:
 - `bhavcopy_2026-03-02.csv` (CSV format)
 
 ---
+## Download
+
+| Platform | Download | Notes |
+|---|---|---|
+| Windows | [GetBhavCopy-windows.zip](https://github.com/AricKaji/GetBhavCopy/releases/latest) | No Python required |
+| macOS | [GetBhavCopy-mac.zip](https://github.com/AricKaji/GetBhavCopy/releases/latest) | No Python required |
+| Linux | Install from source | See below |
 
 ## Installation
 
