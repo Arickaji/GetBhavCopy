@@ -21,7 +21,10 @@ htmlcov/
 # Packaging build artifacts
 build/
 dist/
-*.spec
+
+# Ignore auto-generated spec files but keep our build.spec
+*.auto.spec
+
 *.egg-info/
 .eggs/
 
