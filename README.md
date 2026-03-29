@@ -63,7 +63,6 @@ Files are named by date:
 ## Installation
 
 ### Requirements
-
 - Python 3.10 or higher
 - pip
 
@@ -212,6 +211,22 @@ pre-commit run
 ---
 
 ## Changelog
+
+### v1.0.8 — March 2026
+- Auto-update checker — silent background check on startup
+- Update banner with version info and dismiss button
+- What's new popup — shows formatted release notes from GitHub
+- Direct download — downloads and extracts correct platform build to Downloads folder
+
+### v1.0.7 — March 2026
+- Mac .app bundle — no Python required
+- Windows .exe — no Python required
+- Automated GitHub Actions build pipeline for both platforms
+- Platform download section added to website
+- Buy Me a Coffee support link added
+- GitHub FUNDING.yml sponsor button
+- CLI entry point — launch with `python -m getbhavcopy`
+- PyPI packaging metadata and LICENSE file
 
 ### v1.0.6 — March 2026
 - Full UI redesign with customtkinter
