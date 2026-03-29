@@ -938,6 +938,7 @@ class App:
         import urllib.request
         import zipfile
 
+        platform_keyword = ""
         if sys.platform == "darwin":
             platform_keyword = "mac"
         elif sys.platform == "win32":
