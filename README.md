@@ -212,6 +212,12 @@ pre-commit run
 
 ## Changelog
 
+### v1.0.8 — March 2026
+- Auto-update checker — silent background check on startup
+- Update banner with version info and dismiss button
+- What's new popup — shows formatted release notes from GitHub
+- Direct download — downloads and extracts correct platform build to Downloads folder
+
 ### v1.0.7 — March 2026
 - Mac .app bundle — no Python required
 - Windows .exe — no Python required

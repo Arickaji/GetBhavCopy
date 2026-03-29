@@ -149,6 +149,7 @@ class App:
             import darkdetect
 
             self._palette = self.LIGHT if darkdetect.isLight() else self.DARK
+        self._latest_assets: list = []
         self._apply_theme(self._cfg.get("theme", "system"))
         self.root.configure(fg_color=self._c("BG"))
         self._center_window(720, 600)
@@ -157,6 +158,7 @@ class App:
         self._connect_logger()
 
         logger.info("UI logging initialized successfully.")
+        self.root.after(3000, self._check_for_updates)
 
     def _c(self, key: str) -> str:
         return self._palette[key]
@@ -698,6 +700,306 @@ class App:
         handler.setFormatter(formatter)
         logger.addHandler(handler)
         logger.propagate = False
+
+    def _check_for_updates(self) -> None:
+        logger.info("Checking for updates...")
+        thread = threading.Thread(target=self._fetch_latest_version, daemon=True)
+        thread.start()
+
+    def _fetch_latest_version(self) -> None:
+        import json
+        import urllib.request
+
+        try:
+            url = "https://api.github.com/repos/AricKaji/GetBhavCopy/releases/latest"
+            req = urllib.request.Request(url, headers={"User-Agent": "GetBhavCopy"})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.loads(response.read())
+                latest = data.get("tag_name", "").lstrip("v")
+                body = data.get("body", "No release notes available.")
+                assets = data.get("assets", [])
+                self._latest_assets = assets
+                try:
+                    from importlib.metadata import version as pkg_version
+
+                    current = pkg_version("getbhavcopy")
+                except Exception:
+                    current = "1.0.6"
+                if latest and latest != current:
+                    self.root.after(
+                        0,
+                        lambda: self._show_update_banner(latest, body, assets),
+                    )
+        except Exception as e:
+            logger.warning(f"Update check failed: {e}")
+
+    def _show_update_banner(
+        self, latest_version: str, release_notes: str, assets: list
+    ) -> None:
+        banner = ctk.CTkFrame(
+            self.root,
+            fg_color="#1a3a5a",
+            height=36,
+            corner_radius=0,
+        )
+        banner.place(relx=0, rely=1.0, anchor="sw", relwidth=1.0)
+        banner.pack_propagate(False)
+
+        ctk.CTkLabel(
+            banner,
+            text=f"Update available — v{latest_version}",
+            font=(self.FONT, 11),
+            text_color="#80d4ff",
+        ).pack(side="left", padx=16)
+
+        ctk.CTkButton(
+            banner,
+            text="✕",
+            font=(self.FONT, 11),
+            fg_color="#1a3a5a",
+            text_color="#80d4ff",
+            hover_color="#2a4a6a",
+            corner_radius=6,
+            width=24,
+            height=24,
+            command=banner.destroy,
+        ).pack(side="right", padx=(0, 8))
+
+        ctk.CTkButton(
+            banner,
+            text="Download",
+            font=(self.FONT, 11),
+            fg_color="#0a5a8a",
+            text_color="#ffffff",
+            hover_color="#0a7aba",
+            corner_radius=6,
+            width=90,
+            height=24,
+            command=lambda: self._download_update(latest_version, assets),
+        ).pack(side="right", padx=(0, 4))
+
+        ctk.CTkButton(
+            banner,
+            text="What's new",
+            font=(self.FONT, 11),
+            fg_color="#1a3a5a",
+            text_color="#80d4ff",
+            hover_color="#2a4a6a",
+            corner_radius=6,
+            width=90,
+            height=24,
+            command=lambda: self._show_release_notes(latest_version, release_notes),
+        ).pack(side="right", padx=(0, 4))
+
+    def _show_release_notes(self, version: str, notes: str) -> None:
+        from tkinter import Frame, Label, Toplevel
+
+        win = Toplevel(self.root)
+        win.withdraw()
+        win.title(f"What's new in v{version}")
+        win.geometry("520x460")
+        win.configure(bg=self._c("BG"))
+        win.transient(self.root)
+        win.resizable(False, False)
+
+        # Center on parent
+        win.update_idletasks()
+        pw = self.root.winfo_width()
+        ph = self.root.winfo_height()
+        px = self.root.winfo_rootx()
+        py = self.root.winfo_rooty()
+        x = px + (pw - 520) // 2
+        y = py + (ph - 460) // 2
+        win.geometry(f"520x460+{x}+{y}")
+
+        # Header
+        header = Frame(win, bg=self._c("BG2"), pady=0)
+        header.pack(fill="x")
+
+        Label(
+            header,
+            text="🎉",
+            font=(self.FONT, 28),
+            bg=self._c("BG2"),
+        ).pack(pady=(24, 4))
+
+        Label(
+            header,
+            text=f"v{version} is available",
+            font=(self.FONT, 16, "bold"),
+            fg=self._c("FG"),
+            bg=self._c("BG2"),
+        ).pack()
+
+        Label(
+            header,
+            text="Here's what changed in this release",
+            font=(self.FONT, 11),
+            fg=self._c("FG3"),
+            bg=self._c("BG2"),
+        ).pack(pady=(4, 16))
+
+        Frame(win, bg=self._c("SEP"), height=1).pack(fill="x")
+
+        # Parse and display release notes cleanly
+        text_frame = ctk.CTkTextbox(
+            win,
+            font=("JetBrains Mono", 11),
+            fg_color=self._c("BG"),
+            text_color=self._c("FG2"),
+            corner_radius=0,
+            wrap="word",
+            state="normal",
+        )
+        text_frame.pack(fill="both", expand=True, padx=0, pady=0)
+
+        # Clean up markdown formatting
+        # Clean up markdown formatting
+        cleaned = []
+        for line in notes.splitlines():
+            line = line.strip()
+            if line.startswith("## "):
+                cleaned.append(f"\n  ── {line[3:]} ──\n")
+            elif line.startswith("* "):
+                content = line[2:]
+                # Remove PR links and author attribution
+                if " by @" in content:
+                    content = content[: content.index(" by @")]
+
+                content = content.rstrip(".")
+                if content.endswith(".."):
+                    content = content.rstrip(".")
+                # Remove feat: fix: docs: prefixes
+                for prefix in ["feat: ", "fix: ", "docs: ", "chore: ", "build: "]:
+                    if content.lower().startswith(prefix):
+                        content = content[len(prefix) :]
+                        break
+                # Capitalise first letter
+                content = content.strip().capitalize()
+                cleaned.append(f"  ✓  {content}")
+            elif line.startswith("**Full Changelog**"):
+                cleaned.append("")
+                cleaned.append("  ─────────────────────────────")
+                cleaned.append("")
+                cleaned.append("  View full changelog on GitHub →")
+                cleaned.append("  " + line.split(": ")[-1])
+            elif line:
+                cleaned.append(f"  {line}")
+            else:
+                cleaned.append("")
+
+        text_frame.insert("end", "\n".join(cleaned))
+        text_frame.configure(state="disabled")
+
+        # Footer
+        footer = Frame(win, bg=self._c("BG2"))
+        footer.pack(fill="x", side="bottom")
+
+        Frame(footer, bg=self._c("SEP"), height=1).pack(fill="x")
+
+        btn_row = Frame(footer, bg=self._c("BG2"))
+        btn_row.pack(fill="x", padx=20, pady=14)
+
+        ctk.CTkButton(
+            btn_row,
+            text="Not now",
+            font=(self.FONT, 12),
+            fg_color=self._c("BG3"),
+            text_color=self._c("FG3"),
+            hover_color=self._c("BTN_HOVER"),
+            corner_radius=8,
+            width=100,
+            height=36,
+            command=win.destroy,
+        ).pack(side="left")
+
+        ctk.CTkButton(
+            btn_row,
+            text=f"↓  Download v{version}",
+            font=(self.FONT, 12, "bold"),
+            fg_color=self._c("ACCENT"),
+            text_color=self._c("ACCENT_FG"),
+            hover_color=self._c("ACCENT_HOVER"),
+            corner_radius=8,
+            height=36,
+            command=lambda v=version: self._on_download_click(win, v),
+        ).pack(side="right")
+
+        win.deiconify()
+        win.lift()
+        win.focus_force()
+        win.grab_set()
+
+    def _on_download_click(self, win: object, version: str) -> None:
+        getattr(win, "destroy")()
+        self._download_update(version, self._latest_assets)
+
+    def _download_update(self, version: str, assets: list) -> None:
+        import urllib.request
+        import zipfile
+
+        if sys.platform == "darwin":
+            keyword = "mac"
+        elif sys.platform == "win32":
+            keyword = "windows"
+        else:
+            self._open_releases()
+            return
+
+        download_url = None
+        filename = None
+        for asset in assets:
+            name = asset.get("name", "").lower()
+            if keyword in name:
+                download_url = asset.get("browser_download_url")
+                filename = asset.get("name")
+                break
+
+        if not download_url or not filename:
+            self._open_releases()
+            return
+
+        downloads = Path.home() / "Downloads"
+        zip_path = downloads / filename
+        extract_folder = downloads / f"GetBhavCopy-v{version}"
+
+        logger.info(f"Downloading v{version}...")
+        self._status_var.set(f"Downloading v{version}...")
+
+        def do_download() -> None:
+            try:
+                urllib.request.urlretrieve(download_url, zip_path)
+                extract_folder.mkdir(exist_ok=True)
+                with zipfile.ZipFile(zip_path, "r") as z:
+                    z.extractall(extract_folder)
+                zip_path.unlink()
+                self.root.after(
+                    0, lambda: self._download_complete(extract_folder, version)
+                )
+            except Exception:
+                self.root.after(0, lambda: logger.error("Download failed"))
+                self.root.after(0, lambda: self._status_var.set("Status: Ready"))
+
+        threading.Thread(target=do_download, daemon=True).start()
+
+    def _download_complete(self, folder: Path, version: str) -> None:
+        self._status_var.set("Status: Ready")
+        logger.info(f"v{version} downloaded and extracted to {folder}")
+        if messagebox.askyesno(
+            "Download Complete",
+            f"""GetBhavCopy v{version} downloaded and extracted to:\n{folder}
+                \n\nOpen folder now?""",
+        ):
+            open_folder(folder)
+
+    def _open_releases(self) -> None:
+        url = "https://github.com/AricKaji/GetBhavCopy/releases/latest"
+        if sys.platform == "darwin":
+            subprocess.call(["open", url])
+        elif sys.platform == "win32":
+            subprocess.call(["start", url], shell=True)
+        else:
+            subprocess.call(["xdg-open", url])
 
     def _clear_logs(self) -> None:
         self._log_box.configure(state="normal")
