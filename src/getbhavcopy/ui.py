@@ -939,9 +939,9 @@ class App:
         import zipfile
 
         if sys.platform == "darwin":
-            keyword = "mac"
+            platform_keyword = "mac"
         elif sys.platform == "win32":
-            keyword = "windows"
+            platform_keyword = "windows"
         else:
             self._open_releases()
             return
@@ -950,7 +950,7 @@ class App:
         filename = None
         for asset in assets:
             name = asset.get("name", "").lower()
-            if keyword in name:
+            if platform_keyword in name:
                 download_url = asset.get("browser_download_url")
                 filename = asset.get("name")
                 break
