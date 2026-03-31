@@ -89,6 +89,15 @@ class ProgressAdapter:
             self._bar.set(value / 100)
 
 
+def _is_newer(latest: str, current: str) -> bool:
+    try:
+        latest_parts = [int(x) for x in latest.strip().split(".")]
+        current_parts = [int(x) for x in current.strip().split(".")]
+        return latest_parts > current_parts
+    except Exception:
+        return False
+
+
 class App:
     DARK = {
         "BG": "#1a1a1a",
@@ -241,9 +250,18 @@ class App:
         )
         self._theme_btn.pack(side="right", padx=(8, 0))
 
+        try:
+            from importlib.metadata import version as _pkg_version
+
+            _current_version = "v" + _pkg_version("getbhavcopy")
+        except Exception:
+            from getbhavcopy import __version__
+
+            _current_version = "v" + __version__
+
         ctk.CTkLabel(
             right,
-            text="v1.0.6",
+            text=_current_version,
             font=(self.FONT, 11),
             fg_color=self._c("BG3"),
             text_color=self._c("FG3"),
@@ -724,12 +742,16 @@ class App:
 
                     current = pkg_version("getbhavcopy")
                 except Exception:
-                    current = "1.0.6"
-                if latest and latest != current:
+                    from getbhavcopy import __version__
+
+                    current = __version__
+                if latest and _is_newer(latest, current):
                     self.root.after(
                         0,
                         lambda: self._show_update_banner(latest, body, assets),
                     )
+                else:
+                    logger.info(f"Application is up to date (version {current}).")
         except Exception as e:
             logger.warning(f"Update check failed: {e}")
 
