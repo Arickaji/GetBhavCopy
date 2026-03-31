@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "getbhavcopy"
-version = "1.0.6"
+dynamic = ["version"]
 description = "GetBhavCopy downloader (NSE equity + indices)"
 requires-python = ">=3.10"
 dependencies = [
@@ -14,6 +14,9 @@ dependencies = [
   "pandas-stubs",
   "customtkinter>=5.2.2"
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "getbhavcopy.__version__"}
 
 [tool.setuptools]
 package-dir = {"" = "src"}
