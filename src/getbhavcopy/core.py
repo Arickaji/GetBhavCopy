@@ -150,9 +150,9 @@ class GetBhavCopy:
         file_path = os.path.join(
             self.SaveFolderName,
             (
-                f"bhavcopy_{date_str}.csv"
+                f"{date_str}-NSE-EQ.csv"
                 if self.Output_File_Formate == "CSV"
-                else f"bhavcopy_{date_str}.txt"
+                else f"{date_str}-NSE-EQ.txt"
             ),
         )
 
