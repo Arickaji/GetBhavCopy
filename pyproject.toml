@@ -12,7 +12,8 @@ dependencies = [
   "types-requests",
   "pandas",
   "pandas-stubs",
-  "customtkinter>=5.2.2"
+  "customtkinter>=5.2.2",
+  "certifi",
 ]
 
 [tool.setuptools.dynamic]
