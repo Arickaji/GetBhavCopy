@@ -726,12 +726,20 @@ class App:
 
     def _fetch_latest_version(self) -> None:
         import json
+        import ssl
         import urllib.request
 
         try:
             url = "https://api.github.com/repos/AricKaji/GetBhavCopy/releases/latest"
             req = urllib.request.Request(url, headers={"User-Agent": "GetBhavCopy"})
-            with urllib.request.urlopen(req, timeout=5) as response:
+            ctx = ssl.create_default_context()
+            try:
+                import certifi
+
+                ctx = ssl.create_default_context(cafile=certifi.where())
+            except ImportError:
+                pass
+            with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
                 data = json.loads(response.read())
                 latest = data.get("tag_name", "").lstrip("v")
                 body = data.get("body", "No release notes available.")
