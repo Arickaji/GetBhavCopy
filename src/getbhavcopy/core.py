@@ -31,7 +31,13 @@ class GetBhavCopy:
         self.ProgramBarValue = ProgramBarValue
         self.Output_File_Formate = Output_File_Formate
         self.rootWindow = RootWindow
-        self.max_workers = max_workers
+
+        try:
+            from getbhavcopy.settings_windows import load_app_config
+
+            self.max_workers = load_app_config().get("max_workers", max_workers)
+        except Exception:
+            self.max_workers = max_workers
 
         self.failed_dates: list[str] = []
 
