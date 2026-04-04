@@ -99,7 +99,7 @@
 <nav>
   <div class="nav-brand">
     GetBhavCopy
-    <span id="nav-version">v1.0.8</span>
+    <span id="nav-version">v1.0.9</span>
   </div>
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
@@ -215,6 +215,20 @@
 
   <div class="changelog-entry">
     <div class="changelog-header">
+      <span class="version-badge">v1.0.9</span>
+      <span class="changelog-date">April 2026</span>
+    </div>
+    <ul>
+      <li>Settings window completely redesigned with sidebar navigation</li>
+      <li>Symbol Mapping and Performance sections in dedicated panels</li>
+      <li>Tab switching fixed — instant with no delay</li>
+      <li>Max workers slider in Performance panel</li>
+      <li>Scheduler, Output and Appearance sections coming soon</li>
+    </ul>
+  </div>
+
+  <div class="changelog-entry">
+    <div class="changelog-header">
       <span class="version-badge">v1.0.8</span>
       <span class="changelog-date">March 2026</span>
     </div>
@@ -307,7 +321,7 @@ async function fetchLatestRelease() {
   try {
     const res = await fetch('https://api.github.com/repos/AricKaji/GetBhavCopy/releases/latest');
     const data = await res.json();
-    const tag = data.tag_name || 'v1.0.8';
+    const tag = data.tag_name || 'v1.0.9';
     const assets = data.assets || [];
 
     const winAsset = assets.find(a => a.name.toLowerCase().includes('windows'));

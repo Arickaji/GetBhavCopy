@@ -212,6 +212,14 @@ pre-commit run
 
 ## Changelog
 
+### v1.0.9 — April 2026
+- Settings window completely redesigned with sidebar navigation
+- Symbol Mapping and Performance sections in dedicated panels
+- Tab switching fixed — instant, no delay, no black screen
+- Scheduler, Output and Appearance sections coming in future releases
+- Max workers slider in Performance panel
+- Mapping count badge in sidebar nav
+
 ### v1.0.8 — March 2026
 - Auto-update checker — silent background check on startup
 - Update banner with version info and dismiss button
