@@ -726,56 +726,72 @@ class App:
 
     def _fetch_latest_version(self) -> None:
         import json
-        import ssl
-        import urllib.request
 
+        url = "https://api.github.com/repos/AricKaji/GetBhavCopy/releases/latest"
+        headers = {"User-Agent": "GetBhavCopy"}
+        data: dict = {}
+
+        # Attempt 1 — requests with certifi (best)
         try:
-            url = "https://api.github.com/repos/AricKaji/GetBhavCopy/releases/latest"
-            req = urllib.request.Request(url, headers={"User-Agent": "GetBhavCopy"})
+            import certifi
+            import requests as req
 
-            # Build SSL context with fallback chain
-            ctx: ssl.SSLContext | None = None
+            resp = req.get(url, headers=headers, timeout=8, verify=certifi.where())
+            data = resp.json()
+        except Exception:
+            pass
 
-            # Level 1 — certifi bundled certificates
+        # Attempt 2 — requests without SSL verification (works on cracked Windows)
+        if not data:
             try:
-                import certifi
+                import requests as req
+                import urllib3
 
-                ctx = ssl.create_default_context(cafile=certifi.where())
+                urllib3.disable_warnings()
+                resp = req.get(url, headers=headers, timeout=8, verify=False)
+                data = resp.json()
             except Exception:
                 pass
 
-            # Level 2 — system certificates
-            if ctx is None:
-                try:
-                    ctx = ssl.create_default_context()
-                except Exception:
-                    pass
+        # Attempt 3 — urllib unverified (final fallback)
+        if not data:
+            try:
+                import ssl
+                import urllib.request
 
-            # Level 3 — unverified (last resort, still connects)
-            if ctx is None:
                 ctx = ssl._create_unverified_context()
+                r = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(r, timeout=8, context=ctx) as response:
+                    data = json.loads(response.read())
+            except Exception:
+                pass
 
-            with urllib.request.urlopen(req, timeout=8, context=ctx) as response:
-                data = json.loads(response.read())
-                latest = data.get("tag_name", "").lstrip("v")
-                body = data.get("body", "No release notes available.")
-                assets = data.get("assets", [])
-                self._latest_assets = assets
-                try:
-                    from importlib.metadata import version as pkg_version
+        if not data:
+            logger.warning("Update check failed: could not reach GitHub API")
+            return
 
-                    current = pkg_version("getbhavcopy")
-                except Exception:
-                    from getbhavcopy import __version__
+        try:
+            latest = data.get("tag_name", "").lstrip("v")
+            body = data.get("body", "No release notes available.")
+            assets = data.get("assets", [])
+            self._latest_assets = assets
 
-                    current = __version__
-                if latest and _is_newer(latest, current):
-                    self.root.after(
-                        0,
-                        lambda: self._show_update_banner(latest, body, assets),
-                    )
-                else:
-                    logger.info(f"Application is up to date (version {current}).")
+            try:
+                from importlib.metadata import version as pkg_version
+
+                current = pkg_version("getbhavcopy")
+            except Exception:
+                from getbhavcopy import __version__
+
+                current = __version__
+
+            if latest and _is_newer(latest, current):
+                self.root.after(
+                    0,
+                    lambda: self._show_update_banner(latest, body, assets),
+                )
+            else:
+                logger.info(f"Application is up to date (version {current}).")
         except Exception as e:
             logger.warning(f"Update check failed: {e}")
 
