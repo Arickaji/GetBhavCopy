@@ -1,17 +1,21 @@
 # -*- mode: python ; coding: utf-8 -*-
+import certifi
 
 a = Analysis(
     ['src/getbhavcopy/__main__.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        (certifi.where(), "certifi"),
+    ],
     hiddenimports=[
         'customtkinter',
         'darkdetect',
         'pandas',
         'requests',
         'tkinter',
-        'tkinter.ttk',
+        'tkinter.ttk'
+        'certifi',
     ],
     hookspath=[],
     runtime_hooks=[],
