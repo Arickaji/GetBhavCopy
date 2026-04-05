@@ -732,14 +732,30 @@ class App:
         try:
             url = "https://api.github.com/repos/AricKaji/GetBhavCopy/releases/latest"
             req = urllib.request.Request(url, headers={"User-Agent": "GetBhavCopy"})
-            ctx = ssl.create_default_context()
+
+            # Build SSL context with fallback chain
+            ctx: ssl.SSLContext | None = None
+
+            # Level 1 — certifi bundled certificates
             try:
                 import certifi
 
                 ctx = ssl.create_default_context(cafile=certifi.where())
-            except ImportError:
+            except Exception:
                 pass
-            with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
+
+            # Level 2 — system certificates
+            if ctx is None:
+                try:
+                    ctx = ssl.create_default_context()
+                except Exception:
+                    pass
+
+            # Level 3 — unverified (last resort, still connects)
+            if ctx is None:
+                ctx = ssl._create_unverified_context()
+
+            with urllib.request.urlopen(req, timeout=8, context=ctx) as response:
                 data = json.loads(response.read())
                 latest = data.get("tag_name", "").lstrip("v")
                 body = data.get("body", "No release notes available.")
