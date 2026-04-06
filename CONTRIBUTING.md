@@ -38,6 +38,7 @@ docs: update README changelog
 
 ## File Structure
 
+```
 src/getbhavcopy/
     ├── init.py        # version only
     ├── main.py        # entry point + headless mode
@@ -48,6 +49,7 @@ src/getbhavcopy/
     ├── scheduler.py       # OS scheduler registration
     ├── settings_windows.py # settings UI
     └── ui.py              # main window
+```
 
 ## Adding a New Feature
 
