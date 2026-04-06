@@ -44,13 +44,13 @@ def save_symbol_mapping(mapping: dict) -> None:
 
 
 def load_app_config() -> dict:
-    from getbhavcopy.ui import load_config
+    from getbhavcopy.config import load_config
 
     return load_config()
 
 
 def save_app_config(cfg: dict) -> None:
-    from getbhavcopy.ui import save_config
+    from getbhavcopy.config import save_config
 
     save_config(cfg)
 
@@ -184,7 +184,9 @@ class SettingsWindow:
     )
 
     # ─────────────────────────────────────────────────────────────────────────
-    def __init__(self, parent: object, palette: dict | None = None) -> None:
+    def __init__(
+        self, parent: object, palette: dict | None = None, on_save: object = None
+    ) -> None:
         from tkinter import IntVar, Toplevel
 
         self._p = palette if palette is not None else self.DARK
@@ -205,6 +207,7 @@ class SettingsWindow:
         self._active_key = "mapping"
         self._panels: dict[str, object] = {}
         self._nav_widgets: dict[str, dict] = {}
+        self._on_save_callback = on_save
 
         self._build_root()
         self._load_existing()
@@ -846,6 +849,8 @@ class SettingsWindow:
             save_app_config(cfg)
             save_symbol_mapping(mapping)
             self._on_close()
+            if self._on_save_callback:
+                getattr(self._on_save_callback, "__call__")()
         except Exception as e:
             messagebox.showerror("Save Failed", str(e))
 
