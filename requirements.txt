@@ -41,7 +41,7 @@ nbformat==5.10.4
 nodeenv==1.10.0
 numpy==2.2.6
 packaging @ file:///opt/miniconda3/conda-bld/packaging_1761049079150/work
-pandas==2.3.1
+pandas==2.3.3
 pandas-stubs==3.0.0.260204
 pandocfilters==1.5.1
 parso==0.8.6
