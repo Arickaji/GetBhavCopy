@@ -33,9 +33,9 @@ class GetBhavCopy:
         self.rootWindow = RootWindow
 
         try:
-            from getbhavcopy.settings_windows import load_app_config
+            from getbhavcopy.config import load_config
 
-            self.max_workers = load_app_config().get("max_workers", max_workers)
+            self.max_workers = load_config().get("max_workers", max_workers)
         except Exception:
             self.max_workers = max_workers
 

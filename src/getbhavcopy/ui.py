@@ -1,4 +1,13 @@
-import json as js
+"""
+ui.py — main application window for GetBhavCopy.
+
+Responsible for the UI only. Business logic lives in:
+  config.py       — config read/write
+  scheduler.py    — OS scheduler registration
+  notifications.py — desktop notifications
+  core.py         — download engine
+"""
+
 import logging
 import os
 import subprocess
@@ -7,12 +16,14 @@ import threading
 from datetime import datetime
 from pathlib import Path
 from tkinter import StringVar, filedialog, messagebox
-from typing import Any
 
 import customtkinter as ctk
 
+from getbhavcopy.config import load_config, save_config
 from getbhavcopy.core import GetBhavCopy
 from getbhavcopy.logging_config import setup_logging
+from getbhavcopy.notifications import send_notification
+from getbhavcopy.scheduler import register_autostart, register_os_scheduler
 from getbhavcopy.settings_windows import SettingsWindow
 
 ctk.set_appearance_mode("system")
@@ -21,27 +32,6 @@ ctk.set_default_color_theme("dark-blue")
 setup_logging(debug=True)
 
 logger = logging.getLogger("getbhavcopy")
-
-
-def get_config_path() -> Path:
-    appdata = os.getenv("APPDATA")
-    base = Path(appdata) / "GetBhavCopy" if appdata else Path.home() / ".getbhavcopy"
-    base.mkdir(parents=True, exist_ok=True)
-    return base / "SaveDirPath.json"
-
-
-def load_config() -> Any:
-    path = get_config_path()
-    if not path.exists():
-        default = {"DirPath": str(Path.cwd()), "theme": "system", "format": "TXT"}
-        path.write_text(js.dumps(default, indent=2))
-        return default
-    return js.loads(path.read_text())
-
-
-def save_config(cfg: dict) -> None:
-    path = get_config_path()
-    path.write_text(js.dumps(cfg, indent=2))
 
 
 def open_folder(path: Path) -> None:
@@ -54,6 +44,15 @@ def open_folder(path: Path) -> None:
             subprocess.call(["xdg-open", str(path)])
     except Exception as e:
         logger.error(f"Could not open folder automatically: {e}")
+
+
+def _is_newer(latest: str, current: str) -> bool:
+    try:
+        latest_parts = [int(x) for x in latest.strip().split(".")]
+        current_parts = [int(x) for x in current.strip().split(".")]
+        return latest_parts > current_parts
+    except Exception:
+        return False
 
 
 class TkinterLogHandler(logging.Handler):
@@ -87,15 +86,6 @@ class ProgressAdapter:
     def __setitem__(self, key: str, value: int) -> None:
         if key == "value":
             self._bar.set(value / 100)
-
-
-def _is_newer(latest: str, current: str) -> bool:
-    try:
-        latest_parts = [int(x) for x in latest.strip().split(".")]
-        current_parts = [int(x) for x in current.strip().split(".")]
-        return latest_parts > current_parts
-    except Exception:
-        return False
 
 
 class App:
@@ -158,6 +148,7 @@ class App:
             import darkdetect
 
             self._palette = self.LIGHT if darkdetect.isLight() else self.DARK
+
         self._latest_assets: list = []
         self._apply_theme(self._cfg.get("theme", "system"))
         self.root.configure(fg_color=self._c("BG"))
@@ -168,6 +159,14 @@ class App:
 
         logger.info("UI logging initialized successfully.")
         self.root.after(3000, self._check_for_updates)
+
+        # Start in-app scheduler loop (fallback when OS scheduler is not set)
+        self._start_in_app_scheduler()
+
+        # Apply autostart setting from config
+        self._apply_autostart()
+
+    # ── theme ─────────────────────────────────────────────────────────────────
 
     def _c(self, key: str) -> str:
         return self._palette[key]
@@ -187,6 +186,56 @@ class App:
 
     def run(self) -> None:
         self.root.mainloop()
+
+    # ── scheduler ─────────────────────────────────────────────────────────────
+
+    def _start_in_app_scheduler(self) -> None:
+        """
+        Fallback scheduler — runs while the app is open.
+        The OS-level scheduler (LaunchAgent / Task Scheduler / cron)
+        is the primary mechanism and works without the app being open.
+        """
+        thread = threading.Thread(target=self._in_app_scheduler_loop, daemon=True)
+        thread.start()
+
+    def _in_app_scheduler_loop(self) -> None:
+        import time
+
+        last_triggered = ""
+        while True:
+            try:
+                cfg = load_config()
+                if cfg.get("schedule_enabled", False):
+                    schedule_time = cfg.get("schedule_time", "16:00").strip()
+                    now = datetime.now().strftime("%H:%M")
+                    today = datetime.now().strftime("%Y-%m-%d")
+                    trigger_key = f"{today}_{schedule_time}"
+                    if now == schedule_time and last_triggered != trigger_key:
+                        last_triggered = trigger_key
+                        logger.info(f"In-app scheduler triggered at {now}")
+                        self.root.after(0, self._start_download)
+            except Exception:
+                pass
+            time.sleep(30)
+
+    def _apply_autostart(self) -> None:
+        enabled = self._cfg.get("autostart_enabled", False)
+        register_autostart(enabled)
+
+    def _on_settings_saved(self) -> None:
+        """Called by SettingsWindow after user saves — syncs OS scheduler."""
+        cfg = load_config()
+        enabled = cfg.get("schedule_enabled", False)
+        schedule_time = cfg.get("schedule_time", "16:00")
+        autostart = cfg.get("autostart_enabled", False)
+
+        register_os_scheduler(enabled, schedule_time)
+        register_autostart(autostart)
+
+        status = "enabled" if enabled else "disabled"
+        logger.info(f"OS scheduler {status} for {schedule_time} daily")
+
+    # ── ui build ──────────────────────────────────────────────────────────────
 
     def _build_ui(self) -> None:
         self._build_titlebar()
@@ -293,7 +342,6 @@ class App:
         self._refresh_ui()
 
     def _refresh_ui(self) -> None:
-        # Save log content before destroying
         try:
             log_content = self._log_box._textbox.get("1.0", "end-1c")
         except Exception:
@@ -305,7 +353,6 @@ class App:
         self._build_ui()
         self._connect_logger()
 
-        # Restore log content after rebuild
         if log_content:
             self._log_box._textbox.configure(state="normal")
             self._log_box._textbox.insert("1.0", log_content + "\n")
@@ -346,9 +393,16 @@ class App:
         currentDate = datetime.today().strftime("%d-%m-%Y")
         parts = currentDate.split("-")
 
-        self._day = StringVar(value=parts[0])
-        self._month = StringVar(value=parts[1])
-        self._year = StringVar(value=parts[2])
+        saved_start = self._cfg.get("last_start", "")
+        sp = (
+            saved_start.split("-")
+            if saved_start and len(saved_start.split("-")) == 3
+            else parts
+        )
+
+        self._day = StringVar(value=sp[0])
+        self._month = StringVar(value=sp[1])
+        self._year = StringVar(value=sp[2])
 
         self._day.trace("w", self._limit_day)
         self._month.trace("w", self._limit_month)
@@ -393,9 +447,16 @@ class App:
         fields_end = ctk.CTkFrame(end, fg_color=self._c("BG2"), corner_radius=0)
         fields_end.pack(fill="x", padx=14, pady=(0, 10))
 
-        self._eday = StringVar(value=parts[0])
-        self._emonth = StringVar(value=parts[1])
-        self._eyear = StringVar(value=parts[2])
+        saved_end = self._cfg.get("last_end", "")
+        ep = (
+            saved_end.split("-")
+            if saved_end and len(saved_end.split("-")) == 3
+            else parts
+        )
+
+        self._eday = StringVar(value=ep[0])
+        self._emonth = StringVar(value=ep[1])
+        self._eyear = StringVar(value=ep[2])
 
         self._eday.trace("w", self._limit_eday)
         self._emonth.trace("w", self._limit_emonth)
@@ -635,6 +696,7 @@ class App:
                 palette=SettingsWindow.LIGHT
                 if self._palette is self.LIGHT
                 else SettingsWindow.DARK,
+                on_save=self._on_settings_saved,
             ),
         ).pack(side="left", fill="x", expand=True, padx=(8, 0))
 
@@ -719,6 +781,8 @@ class App:
         logger.addHandler(handler)
         logger.propagate = False
 
+    # ── update checker ────────────────────────────────────────────────────────
+
     def _check_for_updates(self) -> None:
         logger.info("Checking for updates...")
         thread = threading.Thread(target=self._fetch_latest_version, daemon=True)
@@ -731,7 +795,7 @@ class App:
         headers = {"User-Agent": "GetBhavCopy"}
         data: dict = {}
 
-        # Attempt 1 — requests with certifi (best)
+        # Attempt 1 — requests with certifi
         try:
             import certifi
             import requests as req
@@ -741,7 +805,7 @@ class App:
         except Exception:
             pass
 
-        # Attempt 2 — requests without SSL verification (works on cracked Windows)
+        # Attempt 2 — requests without SSL verification (cracked Windows)
         if not data:
             try:
                 import requests as req
@@ -753,7 +817,7 @@ class App:
             except Exception:
                 pass
 
-        # Attempt 3 — urllib unverified (final fallback)
+        # Attempt 3 — urllib unverified
         if not data:
             try:
                 import ssl
@@ -864,7 +928,6 @@ class App:
         win.transient(self.root)
         win.resizable(False, False)
 
-        # Center on parent
         win.update_idletasks()
         pw = self.root.winfo_width()
         ph = self.root.winfo_height()
@@ -874,17 +937,12 @@ class App:
         y = py + (ph - 460) // 2
         win.geometry(f"520x460+{x}+{y}")
 
-        # Header
         header = Frame(win, bg=self._c("BG2"), pady=0)
         header.pack(fill="x")
 
-        Label(
-            header,
-            text="🎉",
-            font=(self.FONT, 28),
-            bg=self._c("BG2"),
-        ).pack(pady=(24, 4))
-
+        Label(header, text="🎉", font=(self.FONT, 28), bg=self._c("BG2")).pack(
+            pady=(24, 4)
+        )
         Label(
             header,
             text=f"v{version} is available",
@@ -892,7 +950,6 @@ class App:
             fg=self._c("FG"),
             bg=self._c("BG2"),
         ).pack()
-
         Label(
             header,
             text="Here's what changed in this release",
@@ -903,7 +960,6 @@ class App:
 
         Frame(win, bg=self._c("SEP"), height=1).pack(fill="x")
 
-        # Parse and display release notes cleanly
         text_frame = ctk.CTkTextbox(
             win,
             font=("JetBrains Mono", 11),
@@ -915,8 +971,6 @@ class App:
         )
         text_frame.pack(fill="both", expand=True, padx=0, pady=0)
 
-        # Clean up markdown formatting
-        # Clean up markdown formatting
         cleaned = []
         for line in notes.splitlines():
             line = line.strip()
@@ -924,19 +978,15 @@ class App:
                 cleaned.append(f"\n  ── {line[3:]} ──\n")
             elif line.startswith("* "):
                 content = line[2:]
-                # Remove PR links and author attribution
                 if " by @" in content:
                     content = content[: content.index(" by @")]
-
                 content = content.rstrip(".")
                 if content.endswith(".."):
                     content = content.rstrip(".")
-                # Remove feat: fix: docs: prefixes
                 for prefix in ["feat: ", "fix: ", "docs: ", "chore: ", "build: "]:
                     if content.lower().startswith(prefix):
                         content = content[len(prefix) :]
                         break
-                # Capitalise first letter
                 content = content.strip().capitalize()
                 cleaned.append(f"  ✓  {content}")
             elif line.startswith("**Full Changelog**"):
@@ -953,10 +1003,8 @@ class App:
         text_frame.insert("end", "\n".join(cleaned))
         text_frame.configure(state="disabled")
 
-        # Footer
         footer = Frame(win, bg=self._c("BG2"))
         footer.pack(fill="x", side="bottom")
-
         Frame(footer, bg=self._c("SEP"), height=1).pack(fill="x")
 
         btn_row = Frame(footer, bg=self._c("BG2"))
@@ -1050,8 +1098,7 @@ class App:
         logger.info(f"v{version} downloaded and extracted to {folder}")
         if messagebox.askyesno(
             "Download Complete",
-            f"""GetBhavCopy v{version} downloaded and extracted to:\n{folder}
-                \n\nOpen folder now?""",
+            f"GetBhavCopy v{version} downloaded to:\n{folder}\n\nOpen folder now?",
         ):
             open_folder(folder)
 
@@ -1087,6 +1134,14 @@ class App:
         )
 
         logger.info(f"User requested download: {starting_date} -> {ending_date}")
+
+        self._cfg["last_start"] = (
+            f"{self._day.get()}-{self._month.get()}-{self._year.get()}"
+        )
+        self._cfg["last_end"] = (
+            f"{self._eday.get()}-{self._emonth.get()}-{self._eyear.get()}"
+        )
+        save_config(self._cfg)
 
         b = GetBhavCopy(
             starting_date,
@@ -1134,6 +1189,12 @@ class App:
 
         self._status_var.set("Status: Completed")
         self._get_data_btn.configure(state="normal")
+
+        # Send desktop notification
+        send_notification(
+            "GetBhavCopy",
+            "Bhavcopy downloaded successfully.",
+        )
 
 
 if __name__ == "__main__":
