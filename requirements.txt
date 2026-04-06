@@ -19,7 +19,7 @@ fastjsonschema==2.21.2
 filelock==3.25.1
 -e git+https://github.com/Arickaji/GetBhavCopy.git@34ba5569fcff05e97e3c932e3484b27622cc1567#egg=getbhavcopy
 identify==2.6.17
-idna==3.10
+idna==3.11
 iniconfig==2.3.0
 ipython==8.12.3
 jedi==0.19.2
