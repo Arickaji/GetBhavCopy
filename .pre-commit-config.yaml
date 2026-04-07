@@ -26,7 +26,12 @@ repos:
       name: pytest (fast)
       entry: bash -c 'pytest -m fast || pytest'
       language: python
-      additional_dependencies: [pytest,pandas,requests]
+      additional_dependencies:
+        - pytest
+        - pandas
+        - requests
+        - customtkinter
+        - darkdetect
       pass_filenames: false
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
