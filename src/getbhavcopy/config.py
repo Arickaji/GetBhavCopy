@@ -40,3 +40,13 @@ def load_config() -> Any:
 def save_config(cfg: dict) -> None:
     path = get_config_path()
     path.write_text(json.dumps(cfg, indent=2))
+
+
+def is_newer(latest: str, current: str) -> bool:
+    """Return True if latest version is newer than current."""
+    try:
+        latest_parts = [int(x) for x in latest.strip().split(".")]
+        current_parts = [int(x) for x in current.strip().split(".")]
+        return latest_parts > current_parts
+    except Exception:
+        return False

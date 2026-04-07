@@ -212,6 +212,15 @@ pre-commit run
 
 ## Changelog
 
+### v1.0.10 — April 2026
+- Scheduler — auto-download bhavcopy at a set time daily
+- No need to open the app — OS handles scheduling automatically
+- Mac uses LaunchAgent, Windows uses Task Scheduler, Linux uses crontab
+- Headless mode — `python -m getbhavcopy --headless`
+- Smart time picker in Settings with HH:MM validation
+- Last used date range saved and restored on next launch
+- Desktop notification when scheduled download completes
+
 ### v1.0.9 — April 2026
 - Settings window completely redesigned with sidebar navigation
 - Symbol Mapping and Performance sections in dedicated panels

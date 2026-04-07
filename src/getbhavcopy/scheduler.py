@@ -177,6 +177,12 @@ def _register_mac(enabled: bool, schedule_time: str) -> None:
     plist_path.parent.mkdir(parents=True, exist_ok=True)
     plist_path.write_text(plist)
 
+    # Unload first if already loaded — ensures fresh registration
+    subprocess.call(
+        ["launchctl", "unload", str(plist_path)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
     subprocess.call(
         ["launchctl", "load", str(plist_path)],
         stdout=subprocess.DEVNULL,
