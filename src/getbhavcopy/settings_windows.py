@@ -209,6 +209,16 @@ class SettingsWindow:
         self._nav_widgets: dict[str, dict] = {}
         self._on_save_callback = on_save
 
+        from tkinter import BooleanVar
+        from tkinter import StringVar as _SV
+
+        cfg = load_app_config()
+        self._schedule_enabled = BooleanVar(value=cfg.get("schedule_enabled", False))
+        _saved_time = cfg.get("schedule_time", "16:00")
+        _t = _saved_time.split(":") if ":" in _saved_time else ["16", "00"]
+        self._schedule_hour_var = _SV(value=_t[0].zfill(2))
+        self._schedule_min_var = _SV(value=_t[1].zfill(2))
+
         self._build_root()
         self._load_existing()
         if not self._rows:
@@ -260,12 +270,13 @@ class SettingsWindow:
 
         Frame(right, bg=self._p["SEP"], height=1).pack(fill="x")
 
+        # Footer must be packed BEFORE switcher so it is not pushed out
+        Frame(right, bg=self._p["SEP"], height=1).pack(fill="x", side="bottom")
+        self._build_footer(right)
+
         self._switcher = Frame(right, bg=self._p["CONTENT_BG"])
         self._switcher.pack(fill="both", expand=True)
         self._switcher.pack_propagate(False)
-
-        Frame(right, bg=self._p["SEP"], height=1).pack(fill="x", side="bottom")
-        self._build_footer(right)
 
         self._build_sidebar()
 
@@ -278,13 +289,16 @@ class SettingsWindow:
 
         pm = F(self._switcher, bg=self._p["CONTENT_BG"])
         pp = F(self._switcher, bg=self._p["CONTENT_BG"])
+        ps = F(self._switcher, bg=self._p["CONTENT_BG"])
 
-        for panel in (pm, pp):
+        for panel in (pm, pp, ps):
             panel.grid(row=0, column=0, sticky="nsew")
 
         self._build_panel_mapping(pm)
         self._build_panel_performance(pp)
-        self._panels = {"mapping": pm, "performance": pp}
+        self._build_panel_scheduler(ps)
+        self._setup_time_validators()
+        self._panels = {"mapping": pm, "performance": pp, "scheduler": ps}
 
         self._build_topbar("mapping")
         self.win.after(10, lambda: self._switch("mapping"))
@@ -351,7 +365,8 @@ class SettingsWindow:
             ("output", "Output"),
             ("appearance", "Appearance"),
         ]:
-            self._nav_item(key, label, disabled=True)
+            disabled = key != "scheduler"
+            self._nav_item(key, label, disabled=disabled)
 
     def _nav_item(self, key: str, label: str, disabled: bool) -> None:
         from tkinter import Frame, Label
@@ -468,7 +483,12 @@ class SettingsWindow:
                 "Performance",
                 "Configure download speed and threading behaviour",
             ),
+            "scheduler": (
+                "Scheduler",
+                "Auto-download today's bhavcopy at a set time every day",
+            ),
         }
+
         title, sub = titles.get(key, (key.title(), ""))
 
         Frame(self._topbar, bg=self._p["CONTENT_BG"], height=22).pack()
@@ -717,6 +737,151 @@ class SettingsWindow:
             justify="left",
         ).pack(anchor="w")
 
+    def _build_panel_scheduler(self, parent: object) -> None:
+        from tkinter import Frame, Label
+
+        outer = Frame(parent, bg=self._p["CONTENT_BG"])  # type: ignore[arg-type]
+        outer.pack(fill="both", expand=True, padx=28, pady=20)
+
+        # Enable card
+        enable_card = Frame(
+            outer,
+            bg=self._p["CARD_BG"],
+            highlightbackground=self._p["SEP"],
+            highlightthickness=1,
+            padx=22,
+            pady=18,
+        )
+        enable_card.pack(fill="x")
+
+        enable_row = Frame(enable_card, bg=self._p["CARD_BG"])
+        enable_row.pack(fill="x", pady=(0, 6))
+
+        Label(
+            enable_row,
+            text="Enable Scheduled Downloads",
+            font=(self.FONT, 13, "bold"),
+            fg=self._p["FG1"],
+            bg=self._p["CARD_BG"],
+        ).pack(side="left")
+
+        ctk.CTkSwitch(
+            enable_row,
+            text="",
+            variable=self._schedule_enabled,
+            onvalue=True,
+            offvalue=False,
+            button_color=self._p["ACCENT"],
+            progress_color=self._p["ACCENT"],
+        ).pack(side="right")
+
+        Label(
+            enable_card,
+            text="Automatically download today's bhavcopy at the time set below.\n"
+            "No need to open the app — the OS handles it automatically.",
+            font=(self.FONT, 11),
+            fg=self._p["FG3"],
+            bg=self._p["CARD_BG"],
+            justify="left",
+            anchor="w",
+        ).pack(anchor="w")
+
+        # Time card
+        time_card = Frame(
+            outer,
+            bg=self._p["CARD_BG"],
+            highlightbackground=self._p["SEP"],
+            highlightthickness=1,
+            padx=22,
+            pady=18,
+        )
+        time_card.pack(fill="x", pady=(12, 0))
+
+        time_row = Frame(time_card, bg=self._p["CARD_BG"])
+        time_row.pack(fill="x", pady=(0, 6))
+
+        Label(
+            time_row,
+            text="Download Time",
+            font=(self.FONT, 13, "bold"),
+            fg=self._p["FG1"],
+            bg=self._p["CARD_BG"],
+        ).pack(side="left")
+
+        time_fields = ctk.CTkFrame(time_row, fg_color=self._p["CARD_BG"])
+        time_fields.pack(side="right")
+
+        self._hour_entry = ctk.CTkEntry(
+            time_fields,
+            textvariable=self._schedule_hour_var,
+            width=52,
+            font=(self.FONT, 14, "bold"),
+            justify="center",
+            fg_color=self._p["ENTRY_BG"],
+            text_color=self._p["ACCENT"],
+            border_color=self._p["ACCENT"],
+            border_width=2,
+            corner_radius=8,
+        )
+        self._hour_entry.pack(side="left")
+
+        ctk.CTkLabel(
+            time_fields,
+            text=":",
+            font=(self.FONT, 16, "bold"),
+            text_color=self._p["FG1"],
+            fg_color=self._p["CARD_BG"],
+            width=12,
+        ).pack(side="left")
+
+        self._min_entry = ctk.CTkEntry(
+            time_fields,
+            textvariable=self._schedule_min_var,
+            width=52,
+            font=(self.FONT, 14, "bold"),
+            justify="center",
+            fg_color=self._p["ENTRY_BG"],
+            text_color=self._p["ACCENT"],
+            border_color=self._p["ACCENT"],
+            border_width=2,
+            corner_radius=8,
+        )
+        self._min_entry.pack(side="left")
+
+        Label(
+            time_card,
+            text="Click the time field on the right to edit — use 24hr format.\n"
+            "NSE closes at 15:30 IST so 16:00 or later is recommended.",
+            font=(self.FONT, 11),
+            fg=self._p["FG3"],
+            bg=self._p["CARD_BG"],
+            justify="left",
+            anchor="w",
+        ).pack(anchor="w")
+
+        # Info box
+        info = Frame(
+            outer,
+            bg=self._p["INFO_BG"],
+            highlightbackground=self._p["INFO_BORDER"],
+            highlightthickness=1,
+            padx=16,
+            pady=12,
+        )
+        info.pack(fill="x", pady=(16, 0))
+
+        Label(
+            info,
+            text="Uses OS-level scheduling — works even when the app is closed. "
+            "Mac uses LaunchAgent, Windows uses Task Scheduler, "
+            "Linux uses crontab.",
+            font=(self.FONT, 11),
+            fg=self._p["INFO_FG"],
+            bg=self._p["INFO_BG"],
+            wraplength=480,
+            justify="left",
+        ).pack(anchor="w")
+
     # ── footer ────────────────────────────────────────────────────────────────
     def _build_footer(self, parent: object) -> None:
         from tkinter import Frame
@@ -754,6 +919,41 @@ class SettingsWindow:
             width=130,
             command=self.save_mapping,
         ).pack(side="right")
+
+    def _setup_time_validators(self) -> None:
+        self._schedule_hour_var.trace("w", self._limit_hour)
+        self._schedule_min_var.trace("w", self._limit_min)
+
+    def _limit_hour(self, *args: object) -> None:
+        v = self._schedule_hour_var.get()
+        if not v.isdigit():
+            self._schedule_hour_var.set("".join(c for c in v if c.isdigit()))
+            return
+        if len(v) > 2:
+            self._schedule_hour_var.set(v[:2])
+            return
+        if len(v) == 2:
+            h = int(v)
+            if h > 23:
+                self._schedule_hour_var.set("23")
+            else:
+                # Auto advance to minutes
+                if hasattr(self, "_min_entry"):
+                    self._min_entry.focus()
+                    self._min_entry.icursor("end")
+
+    def _limit_min(self, *args: object) -> None:
+        v = self._schedule_min_var.get()
+        if not v.isdigit():
+            self._schedule_min_var.set("".join(c for c in v if c.isdigit()))
+            return
+        if len(v) > 2:
+            self._schedule_min_var.set(v[:2])
+            return
+        if len(v) == 2:
+            m = int(v)
+            if m > 59:
+                self._schedule_min_var.set("59")
 
     # ── row management ────────────────────────────────────────────────────────
     def _refresh_count(self) -> None:
@@ -846,11 +1046,15 @@ class SettingsWindow:
         try:
             cfg = load_app_config()
             cfg["max_workers"] = int(self._workers_var.get())
+            cfg["schedule_enabled"] = bool(self._schedule_enabled.get())
+            h = self._schedule_hour_var.get().zfill(2)
+            m = self._schedule_min_var.get().zfill(2)
+            cfg["schedule_time"] = f"{h}:{m}"
             save_app_config(cfg)
             save_symbol_mapping(mapping)
-            self._on_close()
             if self._on_save_callback:
                 getattr(self._on_save_callback, "__call__")()
+            self._on_close()
         except Exception as e:
             messagebox.showerror("Save Failed", str(e))
 

@@ -19,11 +19,12 @@ from tkinter import StringVar, filedialog, messagebox
 
 import customtkinter as ctk
 
+from getbhavcopy.config import is_newer as _is_newer
 from getbhavcopy.config import load_config, save_config
 from getbhavcopy.core import GetBhavCopy
 from getbhavcopy.logging_config import setup_logging
 from getbhavcopy.notifications import send_notification
-from getbhavcopy.scheduler import register_autostart, register_os_scheduler
+from getbhavcopy.scheduler import register_os_scheduler
 from getbhavcopy.settings_windows import SettingsWindow
 
 ctk.set_appearance_mode("system")
@@ -44,15 +45,6 @@ def open_folder(path: Path) -> None:
             subprocess.call(["xdg-open", str(path)])
     except Exception as e:
         logger.error(f"Could not open folder automatically: {e}")
-
-
-def _is_newer(latest: str, current: str) -> bool:
-    try:
-        latest_parts = [int(x) for x in latest.strip().split(".")]
-        current_parts = [int(x) for x in current.strip().split(".")]
-        return latest_parts > current_parts
-    except Exception:
-        return False
 
 
 class TkinterLogHandler(logging.Handler):
@@ -160,12 +152,6 @@ class App:
         logger.info("UI logging initialized successfully.")
         self.root.after(3000, self._check_for_updates)
 
-        # Start in-app scheduler loop (fallback when OS scheduler is not set)
-        self._start_in_app_scheduler()
-
-        # Apply autostart setting from config
-        self._apply_autostart()
-
     # ── theme ─────────────────────────────────────────────────────────────────
 
     def _c(self, key: str) -> str:
@@ -187,50 +173,13 @@ class App:
     def run(self) -> None:
         self.root.mainloop()
 
-    # ── scheduler ─────────────────────────────────────────────────────────────
-
-    def _start_in_app_scheduler(self) -> None:
-        """
-        Fallback scheduler — runs while the app is open.
-        The OS-level scheduler (LaunchAgent / Task Scheduler / cron)
-        is the primary mechanism and works without the app being open.
-        """
-        thread = threading.Thread(target=self._in_app_scheduler_loop, daemon=True)
-        thread.start()
-
-    def _in_app_scheduler_loop(self) -> None:
-        import time
-
-        last_triggered = ""
-        while True:
-            try:
-                cfg = load_config()
-                if cfg.get("schedule_enabled", False):
-                    schedule_time = cfg.get("schedule_time", "16:00").strip()
-                    now = datetime.now().strftime("%H:%M")
-                    today = datetime.now().strftime("%Y-%m-%d")
-                    trigger_key = f"{today}_{schedule_time}"
-                    if now == schedule_time and last_triggered != trigger_key:
-                        last_triggered = trigger_key
-                        logger.info(f"In-app scheduler triggered at {now}")
-                        self.root.after(0, self._start_download)
-            except Exception:
-                pass
-            time.sleep(30)
-
-    def _apply_autostart(self) -> None:
-        enabled = self._cfg.get("autostart_enabled", False)
-        register_autostart(enabled)
-
     def _on_settings_saved(self) -> None:
         """Called by SettingsWindow after user saves — syncs OS scheduler."""
         cfg = load_config()
         enabled = cfg.get("schedule_enabled", False)
         schedule_time = cfg.get("schedule_time", "16:00")
-        autostart = cfg.get("autostart_enabled", False)
 
         register_os_scheduler(enabled, schedule_time)
-        register_autostart(autostart)
 
         status = "enabled" if enabled else "disabled"
         logger.info(f"OS scheduler {status} for {schedule_time} daily")
