@@ -51,16 +51,30 @@ def _register_windows(enabled: bool, schedule_time: str) -> None:
     task_name = "GetBhavCopyScheduler"
 
     if not enabled:
-        subprocess.call(
+        result = subprocess.call(
             ["schtasks", "/delete", "/tn", task_name, "/f"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        logger.info("Windows scheduled task removed")
+        if result == 0:
+            logger.info("Windows scheduled task removed")
+        else:
+            logger.info("Windows scheduled task was not registered")
         return
 
     hour, minute = schedule_time.split(":")
+
+    # Detect if running as PyInstaller exe or Python source
+    is_frozen = getattr(sys, "frozen", False)
     exe = sys.executable
+
+    if is_frozen:
+        # Running as compiled .exe — pass --headless directly
+        task_run = f'"{exe}" --headless'
+    else:
+        # Running from source — use python -m getbhavcopy --headless
+        task_run = f'"{exe}" -m getbhavcopy --headless'
+
     cmd = [
         "schtasks",
         "/create",
@@ -68,16 +82,41 @@ def _register_windows(enabled: bool, schedule_time: str) -> None:
         "/tn",
         task_name,
         "/tr",
-        f'"{exe}" -m getbhavcopy --headless',
+        task_run,
         "/sc",
         "daily",
         "/st",
         f"{hour}:{minute}",
-        "/mo",
-        "1",
+        "/rl",
+        "HIGHEST",
     ]
-    subprocess.call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    logger.info(f"Windows scheduled task created for {schedule_time} daily")
+
+    result = subprocess.call(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    if result == 0:
+        logger.info(f"Windows scheduled task created for {schedule_time} daily")
+        return
+
+    # Retry without /rl HIGHEST — some systems block elevation
+    cmd_no_rl = [c for c in cmd if c not in ("HIGHEST", "/rl")]
+    result2 = subprocess.call(
+        cmd_no_rl,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if result2 == 0:
+        logger.info(
+            f"Windows scheduled task created for {schedule_time} (standard privileges)"
+        )
+    else:
+        logger.warning(
+            "Windows scheduler registration failed — "
+            "try running GetBhavCopy as administrator once to register"
+        )
 
 
 def _autostart_windows(enabled: bool) -> None:

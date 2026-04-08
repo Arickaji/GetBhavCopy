@@ -112,6 +112,9 @@ class SettingsWindow:
         "SEC_FG": "#333333",
         # btn hover
         "BTN_HOVER": "#1e1e1e",
+        # toggle colours
+        "TOGGLE_ON": "#3fb950",
+        "TOGGLE_OFF": "#c04040",
     }
 
     # ── Light palette ─────────────────────────────────────────────────────────
@@ -170,6 +173,9 @@ class SettingsWindow:
         "SEC_FG": "#aaaaaa",
         # btn hover
         "BTN_HOVER": "#eeeeee",
+        # toggle colours
+        "TOGGLE_ON": "#1a6b1a",
+        "TOGGLE_OFF": "#cc3333",
     }
 
     SB_W = 12
@@ -765,15 +771,17 @@ class SettingsWindow:
             bg=self._p["CARD_BG"],
         ).pack(side="left")
 
-        ctk.CTkSwitch(
+        self._enable_switch = ctk.CTkSwitch(
             enable_row,
             text="",
             variable=self._schedule_enabled,
             onvalue=True,
             offvalue=False,
-            button_color=self._p["ACCENT"],
-            progress_color=self._p["ACCENT"],
-        ).pack(side="right")
+            button_color=self._p["TOGGLE_OFF"],
+            progress_color=self._p["TOGGLE_ON"],
+            command=self._on_schedule_toggle,
+        )
+        self._enable_switch.pack(side="right")
 
         Label(
             enable_card,
@@ -851,7 +859,7 @@ class SettingsWindow:
         Label(
             time_card,
             text="Click the time field on the right to edit — use 24hr format.\n"
-            "NSE closes at 15:30 IST so 16:00 or later is recommended.",
+            "NSE closes at 15:30 IST so 17:30:00 or later is recommended.",
             font=(self.FONT, 11),
             fg=self._p["FG3"],
             bg=self._p["CARD_BG"],
@@ -881,6 +889,23 @@ class SettingsWindow:
             wraplength=480,
             justify="left",
         ).pack(anchor="w")
+
+        # Set correct toggle colour on initial load
+        self.win.after(
+            50,
+            lambda: self._enable_switch.configure(
+                button_color=self._p["TOGGLE_ON"]
+                if self._schedule_enabled.get()
+                else self._p["TOGGLE_OFF"]
+            ),
+        )
+
+    def _on_schedule_toggle(self) -> None:
+        """Update switch colour immediately when toggled."""
+        if self._schedule_enabled.get():
+            self._enable_switch.configure(button_color=self._p["TOGGLE_ON"])
+        else:
+            self._enable_switch.configure(button_color=self._p["TOGGLE_OFF"])
 
     # ── footer ────────────────────────────────────────────────────────────────
     def _build_footer(self, parent: object) -> None:
