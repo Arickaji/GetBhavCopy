@@ -28,6 +28,10 @@ jobs:
       - name: Build Windows exe
         run: pyinstaller build.spec --clean --noconfirm
 
+      - name: Smoke test Windows exe
+        run: dist\GetBhavCopy.exe --headless
+        continue-on-error: true
+
       - name: Zip Windows build
         run: |
           powershell -Command "Compress-Archive -Path dist\GetBhavCopy.exe -DestinationPath dist\GetBhavCopy-windows.zip -Force"
@@ -55,6 +59,10 @@ jobs:
 
       - name: Build Mac app
         run: pyinstaller build.spec --clean --noconfirm
+
+      - name: Smoke test Mac app
+        run: ./dist/GetBhavCopy.app/Contents/MacOS/GetBhavCopy --headless
+        continue-on-error: true
 
       - name: Zip Mac build
         run: |
