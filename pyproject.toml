@@ -49,5 +49,5 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=getbhavcopy --cov-report=term-missing"
+addopts = "--cov=getbhavcopy --cov-report=term-missing --cov-fail-under=20"
 pythonpath = ["src"]
