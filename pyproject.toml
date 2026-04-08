@@ -14,6 +14,7 @@ dependencies = [
   "pandas-stubs",
   "customtkinter>=5.2.2",
   "certifi",
+  "pytest-cov",
 ]
 
 [tool.setuptools.dynamic]
@@ -48,4 +49,5 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--cov=getbhavcopy --cov-report=term-missing"
 pythonpath = ["src"]

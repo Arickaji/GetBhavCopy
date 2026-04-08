@@ -28,6 +28,7 @@ repos:
       language: python
       additional_dependencies:
         - pytest
+        - pytest-cov
         - pandas
         - requests
         - customtkinter
