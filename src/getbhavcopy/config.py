@@ -28,7 +28,7 @@ def load_config() -> Any:
             "last_start": "",
             "last_end": "",
             "schedule_enabled": False,
-            "schedule_time": "16:00",
+            "schedule_time": "17:30",
             "autostart_enabled": False,
             "max_workers": 8,
         }

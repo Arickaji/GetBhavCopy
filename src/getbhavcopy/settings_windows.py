@@ -220,8 +220,8 @@ class SettingsWindow:
 
         cfg = load_app_config()
         self._schedule_enabled = BooleanVar(value=cfg.get("schedule_enabled", False))
-        _saved_time = cfg.get("schedule_time", "16:00")
-        _t = _saved_time.split(":") if ":" in _saved_time else ["16", "00"]
+        _saved_time = cfg.get("schedule_time", "17:30")
+        _t = _saved_time.split(":") if ":" in _saved_time else ["17", "30"]
         self._schedule_hour_var = _SV(value=_t[0].zfill(2))
         self._schedule_min_var = _SV(value=_t[1].zfill(2))
 
