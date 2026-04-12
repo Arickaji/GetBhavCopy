@@ -212,6 +212,19 @@ pre-commit run
 
 ## Changelog
 
+### v1.1.0 — April 2026
+- Missed download recovery — auto-detects and fills data gaps
+- Headless mode checks last 7 trading days on every scheduled run
+- Today included automatically after 17:30 IST when market data is available
+- Holiday cache prevents retrying known failed dates forever
+- Launch banner shows missing dates with one-click download
+
+### v1.0.10.1 — April 2026
+- Hotfix — Windows scheduler now correctly detects exe vs source install
+- Windows scheduler falls back to standard privileges if elevated creation fails
+- Scheduler toggle now shows red when disabled, green when enabled
+- Updated recommended download time to 17:30 IST
+
 ### v1.0.10 — April 2026
 - Scheduler — auto-download bhavcopy at a set time daily
 - No need to open the app — OS handles scheduling automatically

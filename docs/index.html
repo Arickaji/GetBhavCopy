@@ -99,7 +99,7 @@
 <nav>
   <div class="nav-brand">
     GetBhavCopy
-    <span id="nav-version">v1.0.10</span>
+    <span id="nav-version">v1.1.0</span>
   </div>
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
@@ -212,6 +212,22 @@
   <div class="section-label">Changelog</div>
   <h2 class="section-title">Release history</h2>
   <p class="section-sub" style="margin-bottom:36px;">What's changed in each version.</p>
+
+  <div class="changelog-entry">
+    <div class="changelog-header">
+      <span class="version-badge">v1.1.0</span>
+      <span class="changelog-date">April 2026</span>
+    </div>
+    <ul>
+      <li>Missed download recovery — auto-detects and fills gaps in bhavcopy data</li>
+      <li>Headless mode checks last 7 trading days on every run</li>
+      <li>Today included automatically after market closes at 17:30 IST</li>
+      <li>Holiday cache — known failed dates skipped automatically</li>
+      <li>2-day retry window handles late NSE data publication</li>
+      <li>Launch banner shows missing dates when app opens</li>
+      <li>Download missing button triggers catch-up with one click</li>
+    </ul>
+  </div>
 
   <div class="changelog-entry">
     <div class="changelog-header">
@@ -361,7 +377,7 @@ async function fetchLatestRelease() {
   try {
     const res = await fetch('https://api.github.com/repos/AricKaji/GetBhavCopy/releases/latest');
     const data = await res.json();
-    const tag = data.tag_name || 'v1.0.10';
+    const tag = data.tag_name || 'v1.1.0';
     const assets = data.assets || [];
 
     const winAsset = assets.find(a => a.name.toLowerCase().includes('windows'));
