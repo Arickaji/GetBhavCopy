@@ -380,3 +380,52 @@ def test_is_newer_handles_bad_input() -> None:
 
     assert _is_newer("", "1.0.9") is False
     assert _is_newer("not-a-version", "1.0.9") is False
+
+
+# ── Headless catch-up ─────────────────────────────────────────────────────────
+
+
+def test_headless_skips_when_all_files_present(tmp_path: Path) -> None:
+    from datetime import datetime, timedelta
+
+    from getbhavcopy import __main__ as main_module
+
+    # Create files for all recent weekdays
+    today = datetime.today()
+    for i in range(7):
+        day = today - timedelta(days=i)
+        if day.weekday() >= 5:
+            continue
+        (tmp_path / f"{day.strftime('%Y-%m-%d')}-NSE-EQ.txt").write_text("x")
+
+    cfg = {
+        "schedule_enabled": True,
+        "DirPath": str(tmp_path),
+        "format": "TXT",
+    }
+    with patch("getbhavcopy.config.load_config", return_value=cfg):
+        with patch("getbhavcopy.core.GetBhavCopy") as mock_dl:
+            with patch("getbhavcopy.notifications.send_notification"):
+                main_module._run_headless()
+            # Should NOT download — all files present
+            mock_dl.assert_not_called()
+
+
+def test_headless_downloads_missing_days(tmp_path: Path) -> None:
+    from getbhavcopy import __main__ as main_module
+
+    cfg = {
+        "schedule_enabled": True,
+        "DirPath": str(tmp_path),
+        "format": "TXT",
+    }
+    # tmp_path is empty — all days are missing
+    with patch("getbhavcopy.config.load_config", return_value=cfg):
+        with patch("getbhavcopy.core.GetBhavCopy") as mock_dl:
+            mock_instance = MagicMock()
+            mock_instance.failed_dates = []
+            mock_dl.return_value = mock_instance
+            with patch("getbhavcopy.notifications.send_notification"):
+                main_module._run_headless()
+            # Should download — files are missing
+            mock_instance.get_bhavcopy.assert_called_once()

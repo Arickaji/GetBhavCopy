@@ -151,6 +151,7 @@ class App:
 
         logger.info("UI logging initialized successfully.")
         self.root.after(3000, self._check_for_updates)
+        self.root.after(5000, self._check_missing_downloads)
 
     # ── theme ─────────────────────────────────────────────────────────────────
 
@@ -183,6 +184,130 @@ class App:
 
         status = "enabled" if enabled else "disabled"
         logger.info(f"OS scheduler {status} for {schedule_time} daily")
+
+    def _check_missing_downloads(self) -> None:
+        """Check for missing bhavcopy files and show banner if gaps found."""
+        thread = threading.Thread(target=self._find_missing_days, daemon=True)
+        thread.start()
+
+    def _find_missing_days(self) -> None:
+        from datetime import timedelta
+        from pathlib import Path
+        from zoneinfo import ZoneInfo
+
+        from getbhavcopy.config import load_failed_dates
+
+        try:
+            cfg = load_config()
+            if not cfg.get("schedule_enabled", False):
+                return
+
+            save_dir = cfg.get("DirPath", str(Path.cwd()))
+            fmt = cfg.get("format", "TXT")
+            ext = "csv" if fmt == "CSV" else "txt"
+
+            ist = ZoneInfo("Asia/Kolkata")
+            now_ist = datetime.now(ist)
+            today_ist = now_ist.date()
+            market_data_available = now_ist.hour > 17 or (
+                now_ist.hour == 17 and now_ist.minute >= 30
+            )
+
+            failed_cache = load_failed_dates()
+            missing: list[str] = []
+
+            for i in range(8):
+                day = today_ist - timedelta(days=i)
+                if i == 0 and not market_data_available:
+                    continue
+                if day.weekday() >= 5:
+                    continue
+                date_str = day.strftime("%Y-%m-%d")
+                if date_str in failed_cache:
+                    continue
+                filename = f"{date_str}-NSE-EQ.{ext}"
+                if not (Path(save_dir) / filename).exists():
+                    missing.append(date_str)
+
+            if missing:
+                self.root.after(
+                    0,
+                    lambda m=missing: self._show_missing_banner(m),
+                )
+        except Exception:
+            pass
+
+    def _show_missing_banner(self, missing: list) -> None:
+        count = len(missing)
+        oldest = sorted(missing)[0]
+        newest = sorted(missing)[-1]
+
+        if count == 1:
+            msg = f"Missing bhavcopy for {oldest} — download now?"
+        else:
+            msg = f"{count} days missing ({oldest} to {newest}) — download now?"
+
+        banner = ctk.CTkFrame(
+            self.root,
+            fg_color="#5a3a1a",
+            height=36,
+            corner_radius=0,
+        )
+        banner.place(relx=0, rely=1.0, anchor="sw", relwidth=1.0)
+        banner.pack_propagate(False)
+
+        ctk.CTkLabel(
+            banner,
+            text=f"⚠  {msg}",
+            font=(self.FONT, 11),
+            text_color="#ffd080",
+        ).pack(side="left", padx=16)
+
+        ctk.CTkButton(
+            banner,
+            text="✕",
+            font=(self.FONT, 11),
+            fg_color="#5a3a1a",
+            text_color="#ffd080",
+            hover_color="#6a4a2a",
+            corner_radius=6,
+            width=24,
+            height=24,
+            command=banner.destroy,
+        ).pack(side="right", padx=(0, 8))
+
+        ctk.CTkButton(
+            banner,
+            text="Download missing",
+            font=(self.FONT, 11, "bold"),
+            fg_color="#8a5a1a",
+            text_color="#ffffff",
+            hover_color="#aa7a2a",
+            corner_radius=6,
+            width=130,
+            height=24,
+            command=lambda: self._download_missing(missing, banner),
+        ).pack(side="right", padx=(0, 4))
+
+    def _download_missing(self, missing: list, banner: object) -> None:
+        getattr(banner, "destroy")()
+        missing_sorted = sorted(missing)
+        start = missing_sorted[0]
+        end = missing_sorted[-1]
+
+        # Set the date fields to the missing range
+        sp = start.split("-")
+        ep = end.split("-")
+
+        self._day.set(sp[2])
+        self._month.set(sp[1])
+        self._year.set(sp[0])
+        self._eday.set(ep[2])
+        self._emonth.set(ep[1])
+        self._eyear.set(ep[0])
+
+        # Trigger download
+        self._start_download()
 
     # ── ui build ──────────────────────────────────────────────────────────────
 
@@ -1135,6 +1260,11 @@ class App:
                 "GetBhavCopy", "Do you want to open the download folder?"
             ):
                 open_folder(out_dir)
+
+        from getbhavcopy.config import add_failed_date
+
+        for fd in getattr(b, "failed_dates", []):
+            add_failed_date(fd)
 
         self._status_var.set("Status: Completed")
         self._get_data_btn.configure(state="normal")
