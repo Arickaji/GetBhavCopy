@@ -8,6 +8,8 @@ Covers:
   - headless mode
   - symbol mapping
   - notifications
+  - holiday calendar
+  - failed dates cache
 """
 
 import json
@@ -92,7 +94,6 @@ def test_file_content_has_correct_columns(_mock: MagicMock, tmp_path: Path) -> N
     b.get_bhavcopy()
     files = list(tmp_path.glob("*.txt"))
     content = files[0].read_text()
-    # Should have SYMBOL,DATE,OPEN,HIGH,LOW,CLOSE,VOLUME — no header
     first_line = content.strip().splitlines()[0]
     parts = first_line.split(",")
     assert len(parts) == 7
@@ -107,7 +108,6 @@ def test_existing_file_is_skipped(_mock: MagicMock, tmp_path: Path) -> None:
     existing.write_text("already exists")
     b = GetBhavCopy("2026-02-13", "2026-02-13", str(tmp_path), "TXT", None, None)
     b.get_bhavcopy()
-    # File content should not have changed
     assert existing.read_text() == "already exists"
 
 
@@ -133,7 +133,6 @@ def test_404_does_not_create_file(_mock: MagicMock, tmp_path: Path) -> None:
 
 @patch("getbhavcopy.core.requests.Session.get", side_effect=fake_session_get)
 def test_weekend_dates_skipped(_mock: MagicMock, tmp_path: Path) -> None:
-    # 2026-02-14 is a Saturday, 2026-02-15 is a Sunday
     b = GetBhavCopy("2026-02-14", "2026-02-15", str(tmp_path), "TXT", None, None)
     b.get_bhavcopy()
     assert list(tmp_path.glob("*.txt")) == []
@@ -217,7 +216,6 @@ def test_save_and_load_symbol_mapping(tmp_path: Path) -> None:
         sw.save_symbol_mapping({"NIFTY 50": "NIFTY50", "reliance": "REL"})
         result = sw.load_symbol_mapping()
 
-    # Keys should be uppercased
     assert result["NIFTY 50"] == "NIFTY50"
     assert result["RELIANCE"] == "REL"
 
@@ -317,12 +315,13 @@ def test_send_notification_linux_calls_notify_send() -> None:
 def test_send_notification_silent_on_failure() -> None:
     from getbhavcopy import notifications
 
-    # Should not raise even if subprocess fails
     with patch("subprocess.call", side_effect=Exception("no subprocess")):
         notifications.send_notification("Title", "Message")
 
 
 # ── Headless mode ─────────────────────────────────────────────────────────────
+
+
 def test_headless_exits_when_scheduler_disabled(tmp_path: Path) -> None:
     from getbhavcopy import __main__ as main_module
 
@@ -342,13 +341,94 @@ def test_headless_downloads_when_enabled(tmp_path: Path) -> None:
         "format": "TXT",
     }
     with patch("getbhavcopy.config.load_config", return_value=cfg):
-        with patch("getbhavcopy.core.GetBhavCopy") as mock_downloader:
-            mock_instance = MagicMock()
-            mock_instance.failed_dates = []
-            mock_downloader.return_value = mock_instance
-            with patch("getbhavcopy.notifications.send_notification"):
-                main_module._run_headless()
-            mock_instance.get_bhavcopy.assert_called_once()
+        with patch("getbhavcopy.config.load_failed_dates", return_value=set()):
+            with patch("getbhavcopy.holidays.get_nse_holidays", return_value=set()):
+                with patch("getbhavcopy.core.GetBhavCopy") as mock_downloader:
+                    mock_instance = MagicMock()
+                    mock_instance.failed_dates = []
+                    mock_downloader.return_value = mock_instance
+                    with patch("getbhavcopy.notifications.send_notification"):
+                        main_module._run_headless()
+                    mock_instance.get_bhavcopy.assert_called_once()
+
+
+def test_headless_skips_when_all_files_present(tmp_path: Path) -> None:
+    from datetime import datetime, timedelta
+
+    from getbhavcopy import __main__ as main_module
+
+    today = datetime.today()
+    for i in range(8):
+        day = today - timedelta(days=i)
+        if day.weekday() >= 5:
+            continue
+        (tmp_path / f"{day.strftime('%Y-%m-%d')}-NSE-EQ.txt").write_text("x")
+
+    cfg = {
+        "schedule_enabled": True,
+        "DirPath": str(tmp_path),
+        "format": "TXT",
+    }
+    with patch("getbhavcopy.config.load_config", return_value=cfg):
+        with patch("getbhavcopy.config.load_failed_dates", return_value=set()):
+            with patch("getbhavcopy.holidays.get_nse_holidays", return_value=set()):
+                with patch("getbhavcopy.core.GetBhavCopy") as mock_dl:
+                    with patch("getbhavcopy.notifications.send_notification"):
+                        main_module._run_headless()
+                    mock_dl.assert_not_called()
+
+
+def test_headless_skips_known_failed_dates(tmp_path: Path) -> None:
+    from datetime import datetime, timedelta
+
+    from getbhavcopy import __main__ as main_module
+    from getbhavcopy import config as cfg_module
+
+    cfg = {
+        "schedule_enabled": True,
+        "DirPath": str(tmp_path),
+        "format": "TXT",
+    }
+    failed: set[str] = set()
+    today = datetime.today()
+    for i in range(8):
+        day = today - timedelta(days=i)
+        if day.weekday() < 5:
+            failed.add(day.strftime("%Y-%m-%d"))
+
+    with patch("getbhavcopy.config.load_config", return_value=cfg):
+        with patch.object(cfg_module, "load_failed_dates", return_value=failed):
+            with patch("getbhavcopy.holidays.get_nse_holidays", return_value=set()):
+                with patch("getbhavcopy.core.GetBhavCopy") as mock_dl:
+                    with patch("getbhavcopy.notifications.send_notification"):
+                        main_module._run_headless()
+                    mock_dl.assert_not_called()
+
+
+def test_headless_skips_nse_holidays(tmp_path: Path) -> None:
+    from datetime import datetime, timedelta
+
+    from getbhavcopy import __main__ as main_module
+
+    cfg = {
+        "schedule_enabled": True,
+        "DirPath": str(tmp_path),
+        "format": "TXT",
+    }
+    holidays: set[str] = set()
+    today = datetime.today()
+    for i in range(8):
+        day = today - timedelta(days=i)
+        if day.weekday() < 5:
+            holidays.add(day.strftime("%Y-%m-%d"))
+
+    with patch("getbhavcopy.config.load_config", return_value=cfg):
+        with patch("getbhavcopy.config.load_failed_dates", return_value=set()):
+            with patch("getbhavcopy.holidays.get_nse_holidays", return_value=holidays):
+                with patch("getbhavcopy.core.GetBhavCopy") as mock_dl:
+                    with patch("getbhavcopy.notifications.send_notification"):
+                        main_module._run_headless()
+                    mock_dl.assert_not_called()
 
 
 # ── is_newer version check ────────────────────────────────────────────────────
@@ -382,50 +462,89 @@ def test_is_newer_handles_bad_input() -> None:
     assert _is_newer("not-a-version", "1.0.9") is False
 
 
-# ── Headless catch-up ─────────────────────────────────────────────────────────
+# ── Failed dates cache ────────────────────────────────────────────────────────
 
 
-def test_headless_skips_when_all_files_present(tmp_path: Path) -> None:
+def test_failed_dates_cache_empty_when_no_file(tmp_path: Path) -> None:
+    from getbhavcopy import config as cfg_module
+
+    fake_path = tmp_path / "failed_dates.json"
+    with patch.object(cfg_module, "get_failed_dates_path", return_value=fake_path):
+        result = cfg_module.load_failed_dates()
+    assert result == set()
+
+
+def test_failed_dates_older_than_2_days_are_returned(tmp_path: Path) -> None:
     from datetime import datetime, timedelta
 
-    from getbhavcopy import __main__ as main_module
+    from getbhavcopy import config as cfg_module
 
-    # Create files for all recent weekdays
-    today = datetime.today()
-    for i in range(7):
-        day = today - timedelta(days=i)
-        if day.weekday() >= 5:
-            continue
-        (tmp_path / f"{day.strftime('%Y-%m-%d')}-NSE-EQ.txt").write_text("x")
+    fake_path = tmp_path / "failed_dates.json"
+    old_date = (datetime.today() - timedelta(days=3)).strftime("%Y-%m-%d")
+    failed_on = old_date
+    fake_path.write_text(json.dumps({old_date: failed_on}))
 
-    cfg = {
-        "schedule_enabled": True,
-        "DirPath": str(tmp_path),
-        "format": "TXT",
-    }
-    with patch("getbhavcopy.config.load_config", return_value=cfg):
-        with patch("getbhavcopy.core.GetBhavCopy") as mock_dl:
-            with patch("getbhavcopy.notifications.send_notification"):
-                main_module._run_headless()
-            # Should NOT download — all files present
-            mock_dl.assert_not_called()
+    with patch.object(cfg_module, "get_failed_dates_path", return_value=fake_path):
+        result = cfg_module.load_failed_dates()
+    assert old_date in result
 
 
-def test_headless_downloads_missing_days(tmp_path: Path) -> None:
-    from getbhavcopy import __main__ as main_module
+def test_recent_failed_dates_not_returned(tmp_path: Path) -> None:
+    from datetime import datetime
 
-    cfg = {
-        "schedule_enabled": True,
-        "DirPath": str(tmp_path),
-        "format": "TXT",
-    }
-    # tmp_path is empty — all days are missing
-    with patch("getbhavcopy.config.load_config", return_value=cfg):
-        with patch("getbhavcopy.core.GetBhavCopy") as mock_dl:
-            mock_instance = MagicMock()
-            mock_instance.failed_dates = []
-            mock_dl.return_value = mock_instance
-            with patch("getbhavcopy.notifications.send_notification"):
-                main_module._run_headless()
-            # Should download — files are missing
-            mock_instance.get_bhavcopy.assert_called_once()
+    from getbhavcopy import config as cfg_module
+
+    fake_path = tmp_path / "failed_dates.json"
+    today = datetime.today().strftime("%Y-%m-%d")
+    fake_path.write_text(json.dumps({today: today}))
+
+    with patch.object(cfg_module, "get_failed_dates_path", return_value=fake_path):
+        result = cfg_module.load_failed_dates()
+    # Today's failure is within 2-day retry window — should NOT be returned
+    assert today not in result
+
+
+# ── Holiday calendar ──────────────────────────────────────────────────────────
+
+
+def test_get_nse_holidays_returns_empty_on_fetch_failure(tmp_path: Path) -> None:
+    from getbhavcopy import holidays as hol
+
+    fake_path = tmp_path / "nse_holidays.json"
+
+    with patch.object(hol, "get_holidays_path", return_value=fake_path):
+        with patch.object(hol, "_fetch_from_nse", return_value=[]):
+            result = hol.get_nse_holidays()
+
+    assert result == set()
+
+
+def test_is_nse_holiday_returns_true_for_holiday() -> None:
+    from getbhavcopy import holidays as hol
+
+    with patch.object(hol, "get_nse_holidays", return_value={"2026-04-03"}):
+        assert hol.is_nse_holiday("2026-04-03") is True
+
+
+def test_is_nse_holiday_returns_false_for_trading_day() -> None:
+    from getbhavcopy import holidays as hol
+
+    with patch.object(hol, "get_nse_holidays", return_value={"2026-04-03"}):
+        assert hol.is_nse_holiday("2026-04-07") is False
+
+
+def test_holiday_cache_saved_on_successful_fetch(tmp_path: Path) -> None:
+    from getbhavcopy import holidays as hol
+
+    fake_path = tmp_path / "nse_holidays.json"
+    holidays_list = ["2026-04-03", "2026-04-14"]
+
+    with patch.object(hol, "get_holidays_path", return_value=fake_path):
+        with patch.object(hol, "_fetch_from_nse", return_value=holidays_list):
+            result = hol.get_nse_holidays(force_refresh=True)
+
+    assert "2026-04-03" in result
+    assert "2026-04-14" in result
+    assert fake_path.exists()
+    cached = json.loads(fake_path.read_text())
+    assert "2026-04-03" in cached["holidays"]

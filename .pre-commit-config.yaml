@@ -23,8 +23,8 @@ repos:
 - repo: local
   hooks:
     - id: pytest
-      name: pytest (fast)
-      entry: bash -c 'pytest -m fast || pytest'
+      name: pytest
+      entry: pytest
       language: python
       additional_dependencies:
         - pytest

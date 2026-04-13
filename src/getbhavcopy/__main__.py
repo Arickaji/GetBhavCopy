@@ -39,6 +39,7 @@ def _run_headless() -> None:
         load_failed_dates,
     )
     from getbhavcopy.core import GetBhavCopy
+    from getbhavcopy.holidays import get_nse_holidays
     from getbhavcopy.logging_config import setup_logging
     from getbhavcopy.notifications import send_notification
 
@@ -67,26 +68,22 @@ def _run_headless() -> None:
         )
 
         failed_cache = load_failed_dates()
+        nse_holidays = get_nse_holidays()
         missing: list[str] = []
 
-        for i in range(8):  # check last 7 days + today
+        for i in range(8):
             day = today_ist - timedelta(days=i)
-
-            # Skip today if market data not yet available
             if i == 0 and not market_data_available:
                 continue
-
-            # Skip weekends
             if day.weekday() >= 5:
                 continue
-
             date_str = day.strftime("%Y-%m-%d")
-
-            # Skip known failures (holidays etc)
+            if date_str in nse_holidays:
+                logger.debug(f"Skipping NSE holiday: {date_str}")
+                continue
             if date_str in failed_cache:
                 logger.debug(f"Skipping known failed date: {date_str}")
                 continue
-
             filename = f"{date_str}-NSE-EQ.{ext}"
             if not (Path(save_dir) / filename).exists():
                 missing.append(date_str)

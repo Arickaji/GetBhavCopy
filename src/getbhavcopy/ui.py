@@ -30,7 +30,7 @@ from getbhavcopy.settings_windows import SettingsWindow
 ctk.set_appearance_mode("system")
 ctk.set_default_color_theme("dark-blue")
 
-setup_logging(debug=True)
+setup_logging(debug=False)
 
 logger = logging.getLogger("getbhavcopy")
 
@@ -151,6 +151,7 @@ class App:
 
         logger.info("UI logging initialized successfully.")
         self.root.after(3000, self._check_for_updates)
+        self.root.after(4000, self._refresh_holiday_calendar)
         self.root.after(5000, self._check_missing_downloads)
 
     # ── theme ─────────────────────────────────────────────────────────────────
@@ -185,6 +186,12 @@ class App:
         status = "enabled" if enabled else "disabled"
         logger.info(f"OS scheduler {status} for {schedule_time} daily")
 
+    def _refresh_holiday_calendar(self) -> None:
+        """Silently refresh NSE holiday calendar in background if stale."""
+        from getbhavcopy.holidays import refresh_holidays_if_needed
+
+        refresh_holidays_if_needed()
+
     def _check_missing_downloads(self) -> None:
         """Check for missing bhavcopy files and show banner if gaps found."""
         thread = threading.Thread(target=self._find_missing_days, daemon=True)
@@ -196,6 +203,7 @@ class App:
         from zoneinfo import ZoneInfo
 
         from getbhavcopy.config import load_failed_dates
+        from getbhavcopy.holidays import get_nse_holidays
 
         try:
             cfg = load_config()
@@ -214,6 +222,7 @@ class App:
             )
 
             failed_cache = load_failed_dates()
+            nse_holidays = get_nse_holidays()
             missing: list[str] = []
 
             for i in range(8):
@@ -223,6 +232,8 @@ class App:
                 if day.weekday() >= 5:
                     continue
                 date_str = day.strftime("%Y-%m-%d")
+                if date_str in nse_holidays:
+                    continue
                 if date_str in failed_cache:
                     continue
                 filename = f"{date_str}-NSE-EQ.{ext}"
