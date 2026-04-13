@@ -212,6 +212,13 @@ pre-commit run
 
 ## Changelog
 
+### v1.1.1 — April 2026
+- NSE holiday calendar — fetches official trading holidays from NSE API
+- Holidays skipped proactively before any download attempt
+- Calendar cached locally and auto-refreshed every 30 days
+- Headless catch-up checks today automatically after 17:30 IST
+- Failed dates cache with 2-day retry window handles late NSE data publication
+
 ### v1.1.0 — April 2026
 - Missed download recovery — auto-detects and fills data gaps
 - Headless mode checks last 7 trading days on every scheduled run
