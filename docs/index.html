@@ -3,434 +3,1298 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GetBhavCopy — NSE Equity & Indices Data Tool</title>
-<meta name="description" content="Download NSE equity and indices bhavcopy data in seconds. Free, open source desktop tool for traders. Mac, Windows and Linux.">
-<meta property="og:title" content="GetBhavCopy — NSE Data Tool">
-<meta property="og:description" content="Download NSE equity and indices bhavcopy data in seconds.">
-<meta property="og:image" content="assets/screenshot-hero.png">
+<title>GetBhavCopy — NSE Bhavcopy, Automated</title>
+<meta name="description" content="Set the scheduler once. GetBhavCopy downloads NSE equity and indices bhavcopy automatically at 17:30 IST every trading day.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,200;0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;1,14..32,200;1,14..32,300&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0a0a0a; --bg2: #111111; --bg3: #1a1a1a; --bg4: #232323;
-    --fg: #ffffff; --fg2: #aaaaaa; --fg3: #555555; --sep: #1e1e1e;
-    --accent: #1a3a1a; --accent-fg: #80ff80; --accent-hover: #2a5a2a;
-    --border: #2a2a2a;
-    --font: -apple-system, "SF Pro Display", "Segoe UI", Ubuntu, sans-serif;
-    --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
-    --radius: 10px;
-  }
-  html { scroll-behavior: smooth; }
-  body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 16px; line-height: 1.7; -webkit-font-smoothing: antialiased; }
-  a { color: var(--accent-fg); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  nav {
-    position: sticky; top: 0; z-index: 100;
-    background: rgba(10,10,10,0.92); backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 40px; height: 56px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .nav-brand { font-size: 16px; font-weight: 600; color: var(--fg); display: flex; align-items: center; gap: 10px; }
-  .nav-brand span { background: var(--accent); color: var(--accent-fg); font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
-  .nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
-  .nav-links a { color: var(--fg2); font-size: 14px; }
-  .nav-links a:hover { color: var(--fg); text-decoration: none; }
-  .nav-cta { background: var(--accent); color: var(--accent-fg) !important; padding: 7px 16px; border-radius: 7px; font-size: 13px !important; font-weight: 600; transition: background 0.15s; }
-  .nav-cta:hover { background: var(--accent-hover) !important; text-decoration: none !important; }
-  .hero { padding: 100px 40px 80px; text-align: center; max-width: 780px; margin: 0 auto; }
-  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: var(--accent-fg); font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 20px; margin-bottom: 28px; letter-spacing: 0.3px; }
-  .hero h1 { font-size: 56px; font-weight: 700; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 20px; background: linear-gradient(180deg, #ffffff 0%, #aaaaaa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .hero p { font-size: 19px; color: var(--fg2); max-width: 560px; margin: 0 auto 36px; line-height: 1.6; }
-  .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 48px; }
-  .btn-primary { background: var(--accent); color: var(--accent-fg); padding: 13px 28px; border-radius: 9px; font-size: 15px; font-weight: 600; transition: background 0.15s, transform 0.1s; display: inline-flex; align-items: center; gap: 8px; }
-  .btn-primary:hover { background: var(--accent-hover); text-decoration: none; transform: translateY(-1px); }
-  .btn-secondary { background: var(--bg3); color: var(--fg2); padding: 13px 28px; border-radius: 9px; font-size: 15px; font-weight: 500; border: 1px solid var(--border); transition: background 0.15s, transform 0.1s; display: inline-flex; align-items: center; gap: 8px; }
-  .btn-secondary:hover { background: var(--bg4); color: var(--fg); text-decoration: none; transform: translateY(-1px); }
-  .hero-meta { display: flex; gap: 32px; justify-content: center; flex-wrap: wrap; }
-  .hero-meta span { font-size: 13px; color: var(--fg3); display: flex; align-items: center; gap: 6px; }
-  .screenshot-section { padding: 0 40px 80px; max-width: 1200px; margin: 0 auto; }
-  .screenshot-section img { width: 100%; border-radius: 14px; border: 1px solid var(--border); }
-  .features { padding: 80px 40px; max-width: 1100px; margin: 0 auto; }
-  .section-label { text-align: center; font-size: 11px; font-weight: 600; color: var(--accent-fg); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; }
-  .section-title { text-align: center; font-size: 34px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 10px; }
-  .section-sub { text-align: center; font-size: 16px; color: var(--fg2); margin-bottom: 56px; }
-  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-  .feature-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; transition: border-color 0.2s, transform 0.15s; }
-  .feature-card:hover { border-color: #3a3a3a; transform: translateY(-2px); }
-  .feature-icon { font-size: 24px; margin-bottom: 14px; display: block; }
-  .feature-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; color: var(--fg); }
-  .feature-card p { font-size: 14px; color: var(--fg2); line-height: 1.6; }
-  .install { padding: 80px 40px; background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-  .install-inner { max-width: 700px; margin: 0 auto; text-align: center; }
-  .install-inner h2 { font-size: 34px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 10px; }
-  .install-inner p { color: var(--fg2); margin-bottom: 32px; }
-  .code-block { background: var(--bg); border: 1px solid var(--border); border-radius: 9px; padding: 16px 20px; text-align: left; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .code-block code { font-family: var(--mono); font-size: 14px; color: var(--accent-fg); }
-  .copy-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--fg3); font-size: 12px; padding: 4px 10px; border-radius: 5px; cursor: pointer; white-space: nowrap; font-family: var(--font); transition: color 0.15s; }
-  .copy-btn:hover { color: var(--fg2); }
-  .install-note { font-size: 13px; color: var(--fg3); margin-top: 16px; }
-  .changelog { padding: 80px 40px; max-width: 760px; margin: 0 auto; }
-  .changelog-entry { border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; margin-bottom: 16px; background: var(--bg2); }
-  .changelog-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-  .version-badge { background: var(--accent); color: var(--accent-fg); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-family: var(--mono); }
-  .changelog-date { font-size: 13px; color: var(--fg3); }
-  .changelog-entry ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
-  .changelog-entry li { font-size: 14px; color: var(--fg2); padding-left: 16px; position: relative; }
-  .changelog-entry li::before { content: "·"; position: absolute; left: 0; color: var(--accent-fg); }
-  footer { border-top: 1px solid var(--border); padding: 32px 40px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
-  .footer-left { font-size: 13px; color: var(--fg3); }
-  .footer-right { display: flex; gap: 24px; }
-  .footer-right a { font-size: 13px; color: var(--fg3); }
-  .footer-right a:hover { color: var(--fg2); text-decoration: none; }
-  .divider { height: 1px; background: var(--border); margin: 0 40px; }
-  @media (max-width: 640px) {
-    .hero h1 { font-size: 36px; }
-    nav { padding: 0 20px; }
-    .nav-links { display: none; }
-    .hero { padding: 60px 20px 40px; }
-    .screenshot-section, .features, .changelog { padding-left: 20px; padding-right: 20px; }
-    .install { padding: 60px 20px; }
-    footer { padding: 24px 20px; flex-direction: column; }
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ── DESIGN TOKENS ── */
+:root{
+  /* dark — default */
+  --bg:        #07070e;
+  --surface:   #0f0f1a;
+  --surface2:  #161624;
+  --surface3:  #1e1e2e;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.12);
+  --text:      rgba(255,255,255,0.90);
+  --text2:     rgba(255,255,255,0.48);
+  --text3:     rgba(255,255,255,0.22);
+  --text4:     rgba(255,255,255,0.09);
+  --green:     #34d399;
+  --green-dim: rgba(52,211,153,0.08);
+  --green-b:   rgba(52,211,153,0.20);
+  --particle:  rgba(52,211,153,1);
+}
+
+[data-theme=light]{
+  --bg:        #faf8f5;
+  --surface:   #ffffff;
+  --surface2:  #f3f1ee;
+  --surface3:  #eae8e4;
+  --border:    #e4e2de;
+  --border2:   #d0ceca;
+  --text:      #1a1820;
+  --text2:     #5a5870;
+  --text3:     #9a98b0;
+  --text4:     #d0cee8;
+  --green:     #166534;
+  --green-dim: rgba(22,101,52,0.06);
+  --green-b:   rgba(22,101,52,0.18);
+  --particle:  rgba(22,101,52,1);
+}
+
+html{scroll-behavior:smooth;background:var(--bg)}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:16px;line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  transition:background .5s,color .4s;
+}
+::selection{background:var(--green-dim);color:var(--text)}
+::-webkit-scrollbar{width:2px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--text4);border-radius:2px}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:900;
+  height:52px;padding:0 6%;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.nav-bg{
+  position:absolute;inset:0;
+  background:var(--bg);
+  opacity:.88;
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border);
+  transition:background .5s,border-color .5s;
+}
+.brand{
+  font-size:15px;font-weight:500;letter-spacing:-.3px;
+  color:var(--text);text-decoration:none;
+  display:flex;align-items:center;gap:8px;
+  position:relative;z-index:1;
+}
+.brand-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 8px var(--green);
+  animation:dot-pulse 2.5s ease-in-out infinite;
+}
+@keyframes dot-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.2;transform:scale(.5)}}
+.nav-mid{
+  display:flex;align-items:center;gap:32px;list-style:none;
+  position:relative;z-index:1;
+}
+.nav-mid a{
+  font-size:13px;font-weight:300;letter-spacing:.1px;
+  color:var(--text3);text-decoration:none;transition:color .2s;
+}
+.nav-mid a:hover{color:var(--text2)}
+.nav-right{
+  display:flex;align-items:center;gap:10px;
+  position:relative;z-index:1;
+}
+.tbtn{
+  width:30px;height:30px;border-radius:8px;
+  background:var(--surface2);border:1px solid var(--border);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:13px;color:var(--text2);
+  transition:background .2s,transform .15s;
+}
+.tbtn:hover{background:var(--surface3);transform:scale(1.06)}
+.nav-gh{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  color:var(--text3);background:var(--surface2);
+  border:1px solid var(--border);
+  padding:5px 12px;border-radius:8px;text-decoration:none;
+  display:flex;align-items:center;gap:5px;
+  transition:border-color .2s,color .2s;
+}
+.nav-gh:hover{border-color:var(--border2);color:var(--text2)}
+.nav-dl{
+  background:var(--text);color:var(--bg);
+  padding:8px 18px;border-radius:9px;
+  font-size:12px;font-weight:500;letter-spacing:.1px;
+  text-decoration:none;display:flex;align-items:center;gap:6px;
+  transition:opacity .2s,transform .15s;
+}
+.nav-dl:hover{opacity:.82;transform:translateY(-1px)}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;position:relative;overflow:hidden;
+  display:grid;grid-template-columns:1fr 1fr;
+  align-items:center;
+  padding:80px 6% 60px 8%;gap:48px;
+}
+canvas#bg-canvas{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  pointer-events:none;z-index:0;
+}
+
+/* subtle radial behind the app */
+.hero-glow{
+  position:absolute;right:-5%;top:50%;
+  transform:translateY(-50%);
+  width:60%;height:80%;
+  background:radial-gradient(ellipse at 60% 50%,rgba(52,211,153,0.04) 0%,transparent 65%);
+  pointer-events:none;z-index:1;
+}
+[data-theme=light] .hero-glow{
+  background:radial-gradient(ellipse at 60% 50%,rgba(22,101,52,0.03) 0%,transparent 65%);
+}
+
+/* LEFT */
+.hl{
+  position:relative;z-index:10;
+  display:flex;flex-direction:column;
+  align-items:flex-start;
+}
+
+.hl-tag{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;letter-spacing:2.5px;
+  color:var(--green);
+  border:1px solid var(--green-b);
+  background:var(--green-dim);
+  padding:6px 14px;border-radius:100px;
+  margin-bottom:28px;
+  opacity:0;animation:rise .7s ease .1s forwards;
+}
+.hl-tag-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--green);
+  animation:dot-pulse 2s ease-in-out infinite;
+}
+
+h1.h-title{
+  font-size:clamp(38px,4.5vw,64px);
+  font-weight:200;
+  line-height:1.08;
+  letter-spacing:-2.5px;
+  color:var(--text);
+  margin-bottom:22px;
+  opacity:0;animation:rise .7s ease .2s forwards;
+}
+h1.h-title em{
+  font-style:italic;font-weight:200;
+  display:block;
+}
+h1.h-title strong{
+  font-weight:500;font-style:normal;
+  color:var(--text);
+}
+h1.h-title .accent{
+  font-style:italic;font-weight:300;
+  background:linear-gradient(120deg,var(--green),rgba(52,211,153,0.65));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+[data-theme=light] h1.h-title .accent{
+  background:linear-gradient(120deg,#166534,#14532d);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+
+.h-desc{
+  font-size:14px;color:var(--text2);
+  line-height:1.85;font-weight:300;
+  max-width:380px;margin-bottom:28px;
+  letter-spacing:.1px;
+  opacity:0;animation:rise .7s ease .3s forwards;
+}
+
+/* STATUS PILL */
+.status-pill{
+  display:inline-flex;align-items:center;gap:11px;
+  padding:10px 16px;margin-bottom:28px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:100px;
+  opacity:0;animation:rise .7s ease .38s forwards;
+}
+.sp-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--green);position:relative;flex-shrink:0;
+}
+.sp-dot::after{
+  content:'';position:absolute;inset:-3px;border-radius:50%;
+  border:1px solid var(--green);
+  animation:sp-ring 2.5s ease-out infinite;
+}
+@keyframes sp-ring{0%{transform:scale(.5);opacity:.7}100%{transform:scale(2.4);opacity:0}}
+.sp-dot.idle{background:var(--text3)}
+.sp-dot.idle::after{display:none}
+.sp-text{display:flex;flex-direction:column;gap:1px}
+.sp-main{font-size:12px;font-weight:400;color:var(--text);letter-spacing:-.1px}
+.sp-sub{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;color:var(--text3);letter-spacing:.3px;
+}
+
+.h-actions{
+  display:flex;gap:12px;align-items:center;
+  margin-bottom:40px;
+  opacity:0;animation:rise .7s ease .48s forwards;
+}
+.btn-primary{
+  background:var(--text);color:var(--bg);
+  padding:12px 24px;border-radius:10px;
+  font-size:13px;font-weight:500;letter-spacing:.1px;
+  border:none;cursor:pointer;
+  display:flex;align-items:center;gap:7px;
+  transition:opacity .2s,transform .15s;
+  text-decoration:none;
+}
+.btn-primary:hover{opacity:.82;transform:translateY(-1px)}
+.btn-link{
+  color:var(--text3);font-size:13px;font-weight:300;
+  display:flex;align-items:center;gap:5px;
+  text-decoration:none;letter-spacing:.1px;
+  transition:color .2s;background:none;border:none;cursor:pointer;
+}
+.btn-link:hover{color:var(--text2)}
+
+/* STATS */
+.h-stats{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;background:var(--surface);
+  width:100%;max-width:420px;
+  opacity:0;animation:rise .7s ease .58s forwards;
+}
+.hst{
+  padding:14px 10px;text-align:center;
+  border-right:1px solid var(--border);
+}
+.hst:last-child{border-right:none}
+.hst-n{
+  font-family:'JetBrains Mono',monospace;
+  font-size:17px;font-weight:400;color:var(--text);
+  display:block;line-height:1;margin-bottom:5px;letter-spacing:-1px;
+}
+.hst-l{
+  font-size:7.5px;color:var(--text3);
+  letter-spacing:1.5px;
+  font-family:'JetBrains Mono',monospace;
+}
+
+/* RIGHT */
+.hr{
+  position:relative;z-index:10;
+  display:flex;flex-direction:column;align-items:center;
+}
+
+/* app glow — in light mode this is invisible */
+.app-glow{
+  position:absolute;width:440px;height:440px;
+  background:radial-gradient(circle,rgba(52,211,153,0.05),transparent 65%);
+  filter:blur(50px);pointer-events:none;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  animation:glow-float 8s ease-in-out infinite;
+}
+[data-theme=light] .app-glow{opacity:0}
+@keyframes glow-float{
+  0%,100%{transform:translate(-50%,-50%) scale(1)}
+  50%{transform:translate(-50%,-54%) scale(1.06)}
+}
+
+.app-wrap{width:100%;max-width:460px;perspective:1100px;position:relative}
+
+/* download flash */
+.dl-flash{
+  position:absolute;inset:-1px;border-radius:17px;
+  background:radial-gradient(circle at 50% 40%,rgba(52,211,153,0.08),transparent 65%);
+  opacity:0;pointer-events:none;z-index:5;
+  transition:opacity .4s ease;
+}
+[data-theme=light] .dl-flash{background:radial-gradient(circle at 50% 40%,rgba(22,101,52,0.06),transparent 65%)}
+.dl-flash.on{opacity:1}
+
+/* THE APP WINDOW */
+.app-win{
+  width:100%;
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:16px;overflow:hidden;
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 48px 100px rgba(0,0,0,0.55),
+    0 16px 40px rgba(0,0,0,0.3);
+  transform-style:preserve-3d;
+  transition:transform .09s ease,
+             background .5s,border-color .5s,box-shadow .5s;
+}
+[data-theme=light] .app-win{
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 24px 60px rgba(0,0,0,0.10),
+    0 8px 20px rgba(0,0,0,0.06);
+}
+
+/* titlebar */
+.app-tb{
+  background:var(--surface2);
+  padding:11px 16px;
+  display:flex;align-items:center;gap:7px;
+  border-bottom:1px solid var(--border);
+  opacity:0;animation:asnap .35s ease .65s forwards;
+}
+.app-dot{width:10px;height:10px;border-radius:50%}
+.app-title{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;color:var(--text3);
+  margin-left:8px;white-space:nowrap;overflow:hidden;
+}
+
+/* body grid */
+.app-body{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+.app-card{
+  background:var(--surface2);border-radius:10px;
+  padding:11px 13px;border:1px solid var(--border);
+  opacity:0;
+}
+.app-card:nth-child(1){animation:asnap .3s ease .82s forwards}
+.app-card:nth-child(2){animation:asnap .3s ease .92s forwards}
+.app-card-lbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:7px;color:var(--text3);
+  margin-bottom:5px;letter-spacing:1.5px;
+}
+.app-card-val{
+  font-size:14px;font-weight:400;
+  color:var(--text);letter-spacing:-.3px;
+}
+
+.app-main-btn{
+  grid-column:1/3;
+  background:var(--green-dim);
+  border:1px solid var(--green-b);
+  color:var(--green);
+  border-radius:9px;padding:10px;
+  font-size:11px;font-weight:500;
+  text-align:center;position:relative;overflow:hidden;
+  opacity:0;animation:asnap .3s ease 1.02s forwards;
+  transition:background .3s,border-color .3s;
+}
+.app-main-btn.active{
+  background:rgba(52,211,153,0.15);
+  border-color:rgba(52,211,153,0.35);
+}
+.app-main-btn::after{
+  content:'';position:absolute;top:-50%;left:-60%;
+  width:22%;height:200%;
+  background:linear-gradient(90deg,transparent,rgba(52,211,153,0.07),transparent);
+  animation:shim 3s ease-in-out infinite;
+}
+@keyframes shim{0%{left:-60%}100%{left:160%}}
+
+.app-minis{
+  grid-column:1/-1;display:grid;
+  grid-template-columns:1fr 1fr 1fr;gap:7px;
+  opacity:0;animation:asnap .3s ease 1.12s forwards;
+}
+.app-mini{
+  background:var(--surface2);color:var(--text3);
+  border-radius:8px;padding:7px;
+  font-family:'JetBrains Mono',monospace;font-size:8px;
+  text-align:center;border:1px solid var(--border);
+}
+
+.app-log{
+  grid-column:1/-1;
+  background:var(--surface3);
+  border-radius:10px;padding:11px 13px;
+  border:1px solid var(--border);
+  opacity:0;animation:asnap .3s ease 1.24s forwards;
+  min-height:72px;
+}
+.app-ll{
+  font-family:'JetBrains Mono',monospace;
+  font-size:8.5px;margin-bottom:3px;line-height:1.65;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.app-ll.g{color:var(--green)}
+.app-ll.d{color:var(--text3)}
+
+.app-sb{
+  background:var(--surface2);border-top:1px solid var(--border);
+  padding:6px 15px;display:flex;justify-content:space-between;
+  font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--text3);
+  opacity:0;animation:asnap .3s ease 1.36s forwards;
+}
+
+/* missing banner */
+.miss-wrap{
+  width:100%;max-width:460px;margin-top:10px;
+  opacity:0;animation:asnap .4s ease 1.6s forwards;
+}
+.miss-banner{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:10px 15px;
+}
+.miss-txt{
+  font-family:'JetBrains Mono',monospace;
+  font-size:8.5px;color:var(--text2);
+  display:flex;align-items:center;gap:7px;
+}
+.miss-txt::before{content:'◦';color:var(--green)}
+.miss-btn{
+  background:var(--surface2);color:var(--text2);
+  font-size:10px;font-weight:400;
+  padding:5px 12px;border-radius:7px;
+  border:1px solid var(--border);cursor:pointer;
+  transition:background .2s,color .2s;white-space:nowrap;
+  font-family:'Inter',sans-serif;
+}
+.miss-btn:hover{background:var(--surface3);color:var(--text)}
+.miss-x{
+  background:none;border:none;color:var(--text3);
+  cursor:pointer;font-size:14px;padding:0 3px;line-height:1;
+  transition:color .2s;
+}
+.miss-x:hover{color:var(--text2)}
+
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes asnap{from{opacity:0;transform:scale(.96) translateY(5px)}to{opacity:1;transform:none}}
+
+/* ── NSE TICKER ── */
+.ticker{
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  overflow:hidden;
+  background:var(--surface);
+}
+.ticker-track{
+  display:flex;width:max-content;
+  animation:tick 40s linear infinite;
+}
+.ticker-track:hover{animation-play-state:paused}
+.ticker-item{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:var(--text3);
+  padding:12px 20px;white-space:nowrap;
+  display:flex;align-items:center;gap:18px;
+  border-right:1px solid var(--border);
+}
+.ticker-sep{color:var(--text4);font-size:8px}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ── SECTION BASE ── */
+section{padding:96px 6%}
+.si{max-width:1060px;margin:0 auto}
+.s-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;letter-spacing:2.5px;
+  color:var(--green);display:block;margin-bottom:14px;
+}
+.s-title{
+  font-size:clamp(26px,3vw,42px);font-weight:200;
+  letter-spacing:-1.5px;line-height:1.1;
+  margin-bottom:14px;color:var(--text);
+}
+.s-title strong{font-weight:500}
+.s-sub{
+  font-size:14px;color:var(--text2);
+  max-width:460px;line-height:1.8;font-weight:300;
+}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(20px);transition:opacity .75s ease,transform .75s ease}
+.rv.vis{opacity:1;transform:none}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}
+.d3{transition-delay:.24s}.d4{transition-delay:.32s}
+
+/* ── FEATURES ── */
+.feat-bg{background:var(--bg)}
+.feat-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:10px;margin-top:48px;
+}
+.fc{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;padding:28px;
+  position:relative;overflow:hidden;
+  transition:border-color .25s,transform .25s;
+}
+.fc::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--green-b),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.fc:hover{border-color:var(--green-b);transform:translateY(-3px)}
+.fc:hover::after{opacity:1}
+.fc-icon{font-size:20px;margin-bottom:16px;display:block;opacity:.75}
+.fc h3{font-size:13px;font-weight:500;margin-bottom:7px;color:var(--text);letter-spacing:-.2px}
+.fc p{font-size:12.5px;color:var(--text2);line-height:1.7;font-weight:300}
+.fc-tag{
+  display:inline-block;margin-top:12px;
+  font-family:'JetBrains Mono',monospace;font-size:8px;
+  color:var(--green);background:var(--green-dim);
+  padding:3px 9px;border-radius:20px;letter-spacing:.5px;
+}
+
+/* ── SCHEDULER ── */
+.sch-bg{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.sch-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:64px;align-items:start;margin-top:48px;
+}
+.step{display:flex;gap:16px;padding:18px 0;border-bottom:1px solid var(--border)}
+.step:last-child{border-bottom:none}
+.step-n{
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;
+  border:1px solid var(--green-b);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:9px;
+  color:var(--green);background:var(--green-dim);
+}
+.step-h{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;letter-spacing:-.2px}
+.step-p{font-size:12px;color:var(--text2);line-height:1.65;font-weight:300}
+
+/* scheduler panel */
+.sp-panel{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;
+  box-shadow:0 16px 48px rgba(0,0,0,0.08);
+  margin-bottom:12px;
+}
+[data-theme=light] .sp-panel{box-shadow:0 8px 32px rgba(0,0,0,0.06)}
+.sp-bar{
+  background:var(--surface2);padding:10px 15px;
+  display:flex;align-items:center;gap:5px;
+  border-bottom:1px solid var(--border);
+  font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);
+}
+.sp-dot2{width:9px;height:9px;border-radius:50%}
+.sp-body{padding:16px}
+.sp-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.sp-lbl{font-size:12px;font-weight:500;color:var(--text);letter-spacing:-.1px}
+.sp-toggle{
+  width:40px;height:22px;border-radius:11px;
+  background:var(--green);position:relative;flex-shrink:0;
+  box-shadow:0 0 12px var(--green-dim);
+}
+.sp-toggle::after{
+  content:'';position:absolute;top:2px;right:2px;
+  width:18px;height:18px;border-radius:50%;
+  background:white;box-shadow:0 1px 3px rgba(0,0,0,.25);
+}
+.sp-desc{font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.5;font-weight:300}
+.sp-time-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface2);border-radius:8px;padding:9px 12px;
+  border:1px solid var(--border);
+}
+.sp-time-lbl{font-size:11px;font-weight:500;color:var(--text);letter-spacing:-.1px}
+.sp-time-val{display:flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--green)}
+.sp-dig{
+  border:1px solid var(--green-b);
+  padding:3px 9px;border-radius:6px;background:var(--green-dim);
+}
+.sp-info{
+  margin-top:12px;background:var(--green-dim);
+  border:1px solid var(--green-b);border-radius:8px;
+  padding:10px 12px;font-size:11px;color:var(--text2);
+  line-height:1.55;font-weight:300;
+}
+
+/* notif mockup */
+.nm{
+  background:#111118;border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px;overflow:hidden;
+  box-shadow:0 12px 36px rgba(0,0,0,0.4);
+  animation:nm-slide .55s cubic-bezier(.34,1.56,.64,1) 1.2s both;
+}
+[data-theme=light] .nm{
+  background:#fff;border:1px solid var(--border);
+  box-shadow:0 8px 28px rgba(0,0,0,0.08);
+}
+@keyframes nm-slide{from{opacity:0;transform:translateX(24px) scale(.94)}to{opacity:1;transform:none}}
+.nm-i{padding:12px 14px;display:flex;gap:10px;align-items:flex-start}
+.nm-ic{
+  width:34px;height:34px;border-radius:8px;
+  background:var(--green-dim);border:1px solid var(--green-b);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;
+}
+.nm-app{font-size:10px;font-weight:500;color:rgba(255,255,255,.25);margin-bottom:2px}
+[data-theme=light] .nm-app{color:var(--text3)}
+.nm-title{font-size:12px;font-weight:500;color:rgba(255,255,255,.88);letter-spacing:-.1px}
+[data-theme=light] .nm-title{color:var(--text)}
+.nm-body{font-size:10.5px;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace}
+[data-theme=light] .nm-body{color:var(--text3)}
+.nm-bar{height:1.5px;background:linear-gradient(90deg,var(--green),rgba(52,211,153,.3));transform-origin:left;animation:nm-bar 4s linear forwards}
+@keyframes nm-bar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+
+/* ── HOW ── */
+.how-bg{background:var(--bg);border-top:1px solid var(--border)}
+.how-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:48px}
+.hw{text-align:center;padding:28px 16px}
+.hw-step{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--green);letter-spacing:2px;margin-bottom:14px;display:block}
+.hw-icon{font-size:26px;margin-bottom:14px;display:block;opacity:.7}
+.hw h4{font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px;letter-spacing:-.2px}
+.hw p{font-size:12px;color:var(--text2);line-height:1.6;font-weight:300}
+
+/* ── PLATFORMS ── */
+.plat-bg{background:var(--surface);border-top:1px solid var(--border)}
+.plat-grid{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:44px}
+.plat-card{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:14px;padding:26px 32px;min-width:186px;
+  text-align:center;transition:border-color .2s,transform .2s;
+}
+[data-theme=light] .plat-card{background:var(--surface2)}
+.plat-card:hover{border-color:var(--green-b);transform:translateY(-3px)}
+.plat-icon{font-size:32px;margin-bottom:10px;display:block;opacity:.8}
+.plat-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px;letter-spacing:-.1px}
+.plat-detail{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.plat-badge{display:inline-block;margin-top:9px;font-family:'JetBrains Mono',monospace;font-size:8px;padding:3px 9px;border-radius:20px}
+.pg{background:var(--green-dim);color:var(--green)}
+.pb{background:rgba(99,102,241,0.08);color:rgba(165,180,252,.7)}
+.po{background:rgba(251,146,60,0.08);color:rgba(251,146,60,.65)}
+
+/* ── TERMINAL ── */
+.install-bg{background:var(--bg);border-top:1px solid var(--border)}
+.term{
+  max-width:640px;margin:40px auto 0;
+  background:var(--surface3);
+  border:1px solid var(--border);border-radius:14px;overflow:hidden;
+}
+.term-bar{
+  background:var(--surface2);padding:10px 14px;
+  display:flex;align-items:center;gap:6px;
+  border-bottom:1px solid var(--border);
+}
+.term-dot{width:9px;height:9px;border-radius:50%}
+.term-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3);margin-left:7px}
+.term-body{
+  padding:18px 20px;min-height:180px;
+  font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.9;
+}
+.tl .pr{color:var(--text3)}
+.tl .cmd{color:var(--text)}
+.tl .out{color:var(--text3)}
+.tl .suc{color:var(--green)}
+.tblink{display:inline-block;width:6px;height:13px;background:var(--text3);vertical-align:middle;animation:blink 1s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.cbs{max-width:640px;margin:12px auto 0;display:flex;flex-direction:column;gap:5px}
+.cb{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:9px;padding:11px 15px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.cb code{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text)}
+.cpb{
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text3);font-size:9px;padding:4px 10px;border-radius:6px;
+  cursor:pointer;font-family:'JetBrains Mono',monospace;
+  transition:color .15s,background .15s;white-space:nowrap;
+}
+.cpb:hover{color:var(--text2)}
+
+/* ── CHANGELOG ── */
+.cl-bg{background:var(--surface);border-top:1px solid var(--border)}
+.cl-list{max-width:640px;margin:48px auto 0;display:flex;flex-direction:column;gap:8px}
+.cle{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px 24px}
+[data-theme=light] .cle{background:var(--surface2)}
+.clh{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.clb{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;padding:4px 10px;border-radius:6px;letter-spacing:.5px}
+.clb.lat{background:var(--green-dim);color:var(--green)}
+.clb.old{background:var(--surface2);color:var(--text3)}
+[data-theme=light] .clb.old{background:var(--surface3)}
+.cld{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.cli{list-style:none;display:flex;flex-direction:column;gap:4px}
+.cli li{font-size:12px;color:var(--text2);padding-left:14px;position:relative;line-height:1.5;font-weight:300}
+.cli li::before{content:'—';position:absolute;left:0;color:var(--text3);font-size:10px}
+
+/* ── FOOTER ── */
+footer{
+  border-top:1px solid var(--border);padding:22px 6%;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+}
+.fl{font-size:11px;color:var(--text3);font-weight:300}
+.fl a{color:var(--text2);text-decoration:none}
+.fl a:hover{color:var(--text)}
+.fr{display:flex;gap:18px}
+.fr a{font-size:11px;color:var(--text3);text-decoration:none;font-weight:300;transition:color .2s}
+.fr a:hover{color:var(--text2)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr;padding:80px 6% 60px;text-align:center}
+  .hl{align-items:center}
+  .h-desc,.s-sub{max-width:100%}
+  .h-actions{justify-content:center}
+  .h-stats{align-self:center}
+  .feat-grid,.sch-grid,.how-grid{grid-template-columns:1fr}
+  .nav-mid{display:none}
+  section{padding:70px 6%}
+  .plat-grid{flex-direction:column;align-items:center}
+  footer{flex-direction:column;text-align:center}
+}
 </style>
 </head>
 <body>
 
+<!-- NAV -->
 <nav>
-  <div class="nav-brand">
-    GetBhavCopy
-    <span id="nav-version">v1.1.1</span>
-  </div>
-  <ul class="nav-links">
+  <div class="nav-bg"></div>
+  <a href="#" class="brand"><span class="brand-dot"></span>GetBhavCopy</a>
+  <ul class="nav-mid">
     <li><a href="#features">Features</a></li>
+    <li><a href="#scheduler">Scheduler</a></li>
     <li><a href="#install">Install</a></li>
     <li><a href="#changelog">Changelog</a></li>
-    <li><a href="https://github.com/AricKaji/GetBhavCopy">GitHub</a></li>
-    <li><a href="https://github.com/AricKaji/GetBhavCopy/releases/latest" class="nav-cta" id="nav-download">↓ Download</a></li>
-    <li><a href="https://buymeacoffee.com/AricKaji" target="_blank" style="background:#FFDD00;color:#000000;padding:7px 16px;border-radius:7px;font-size:13px;font-weight:600;">☕ Support</a></li>
   </ul>
+  <div class="nav-right">
+    <button class="tbtn" id="tbtn">🌙</button>
+    <a href="https://github.com/AricKaji/GetBhavCopy" class="nav-gh">★ <span id="sc">GitHub</span></a>
+    <a href="https://github.com/AricKaji/GetBhavCopy/releases/latest" class="nav-dl" id="ndl">↓ Download</a>
+  </div>
 </nav>
 
-<section class="hero">
-  <div class="hero-badge">NSE Equity &amp; Indices Data Tool</div>
-  <h1>GetBhavCopy</h1>
-  <p>Download NSE bhavcopy data in seconds. Designed for traders using AmiBroker and other charting platforms.</p>
-  <div class="hero-btns">
-    <a id="btn-download-latest" href="https://github.com/AricKaji/GetBhavCopy/releases/latest" class="btn-primary">↓ Download Latest</a>
-    <a href="https://github.com/AricKaji/GetBhavCopy" class="btn-secondary">View on GitHub →</a>
-  </div>
-  <div class="hero-meta">
-    <span>✦ Free &amp; Open Source</span>
-    <span>✦ Python 3.10+</span>
-    <span>✦ Mac · Windows · Linux</span>
-    <span>✦ MIT License</span>
-  </div>
-</section>
+<!-- HERO -->
+<section class="hero" id="home">
+  <canvas id="bg-canvas"></canvas>
+  <div class="hero-glow"></div>
 
-<section class="screenshot-section">
-  <img src="assets/screenshot-hero.png" alt="GetBhavCopy dark and light theme screenshots" loading="lazy">
-</section>
+  <!-- LEFT -->
+  <div class="hl">
+    <div class="hl-tag">
+      <span class="hl-tag-dot"></span>
+      NSE EQUITY &amp; INDICES · FREE · v1.1.1
+    </div>
 
-<div class="divider"></div>
+    <h1 class="h-title">
+      <em>Never think about</em>
+      <strong>bhavcopy</strong>
+      <span class="accent">again.</span>
+    </h1>
 
-<section style="padding:48px 40px;text-align:center;">
-  <div class="section-label">Download</div>
-  <h2 class="section-title" style="margin-bottom:10px;">Pick your platform</h2>
-  <p style="color:var(--fg2);font-size:15px;margin-bottom:32px;">Windows and Mac — no Python required. Just download and run.</p>
-  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-    <a id="btn-windows" href="https://github.com/AricKaji/GetBhavCopy/releases/latest" class="btn-primary">🪟 Windows .exe</a>
-    <a id="btn-mac" href="https://github.com/AricKaji/GetBhavCopy/releases/latest" class="btn-secondary">🍎 Mac .app</a>
-    <a href="https://github.com/AricKaji/GetBhavCopy/releases/latest" class="btn-secondary">🐧 Linux (source)</a>
-  </div>
-  <p id="version-note" style="color:var(--fg3);font-size:12px;margin-top:16px;">Fetching latest version...</p>
-</section>
+    <p class="h-desc">
+      GetBhavCopy watches the clock. At 17:30 IST every trading day it downloads NSE equity and indices data automatically — no app open, no manual steps, no missed days.
+    </p>
 
-<section class="features" id="features">
-  <div class="section-label">Features</div>
-  <h2 class="section-title">Everything you need</h2>
-  <p class="section-sub">Built for traders who need reliable NSE data fast, every day.</p>
-  <div class="features-grid">
-    <div class="feature-card">
-      <span class="feature-icon">↓</span>
-      <h3>Equity &amp; Indices</h3>
-      <p>Downloads both NSE equity and index bhavcopy data in one click — no manual steps.</p>
+    <div class="status-pill">
+      <div class="sp-dot idle" id="spdot"></div>
+      <div class="sp-text">
+        <span class="sp-main" id="spmain">Scheduler active</span>
+        <span class="sp-sub" id="spsub">Next download at 17:30 IST</span>
+      </div>
     </div>
-    <div class="feature-card">
-      <span class="feature-icon">⇄</span>
-      <h3>Symbol Mapping</h3>
-      <p>Rename any NSE symbol or index to match your tool's naming convention. Saved automatically.</p>
+
+    <div class="h-actions">
+      <a href="https://github.com/AricKaji/GetBhavCopy/releases/latest" class="btn-primary" id="hdl">↓ Download free</a>
+      <a href="https://github.com/AricKaji/GetBhavCopy" class="btn-link">View on GitHub →</a>
     </div>
-    <div class="feature-card">
-      <span class="feature-icon">⚡</span>
-      <h3>Parallel Downloads</h3>
-      <p>Uses up to 8 concurrent threads for fast multi-day downloads. Weeks of data in seconds.</p>
-    </div>
-    <div class="feature-card">
-      <span class="feature-icon">◑</span>
-      <h3>Dark &amp; Light Theme</h3>
-      <p>Follows your system theme automatically. Manual toggle to override — dark, light or system.</p>
-    </div>
-    <div class="feature-card">
-      <span class="feature-icon">⊞</span>
-      <h3>TXT &amp; CSV Export</h3>
-      <p>Export in TXT or CSV format. Compatible with AmiBroker, MetaStock and most charting platforms.</p>
-    </div>
-    <div class="feature-card">
-      <span class="feature-icon">✓</span>
-      <h3>Skip Existing</h3>
-      <p>Already downloaded a date? It gets skipped automatically. Re-running is always safe.</p>
+
+    <div class="h-stats">
+      <div class="hst"><span class="hst-n" data-count="2000" data-suf="+">0</span><span class="hst-l">SYMBOLS</span></div>
+      <div class="hst"><span class="hst-n" data-count="20" data-suf="">0</span><span class="hst-l">HOLIDAYS</span></div>
+      <div class="hst"><span class="hst-n" data-count="3" data-suf="">0</span><span class="hst-l">PLATFORMS</span></div>
+      <div class="hst"><span class="hst-n" data-count="8" data-suf="">0</span><span class="hst-l">THREADS</span></div>
     </div>
   </div>
-</section>
 
-<div class="divider"></div>
-
-<section class="install" id="install">
-  <div class="install-inner">
-    <div class="section-label">Installation</div>
-    <h2>Get started in seconds</h2>
-    <p>Requires Python 3.10 or higher.</p>
-    <div class="code-block">
-      <code>git clone https://github.com/AricKaji/GetBhavCopy.git</code>
-      <button class="copy-btn" onclick="copyCode(this, 'git clone https://github.com/AricKaji/GetBhavCopy.git')">Copy</button>
+  <!-- RIGHT — app -->
+  <div class="hr">
+    <div class="app-glow"></div>
+    <div class="app-wrap">
+      <div class="dl-flash" id="dlflash"></div>
+      <div class="app-win" id="appwin">
+        <div class="app-tb">
+          <div class="app-dot" style="background:#ff5f57"></div>
+          <div class="app-dot" style="background:#ffbd2e"></div>
+          <div class="app-dot" style="background:#28ca41"></div>
+          <span class="app-title">GetBhavCopy Downloader — NSE EQ Cash Segment — By Aric Kaji</span>
+        </div>
+        <div class="app-body">
+          <div class="app-card"><div class="app-card-lbl">START DATE</div><div class="app-card-val">13 / 04 / 2026</div></div>
+          <div class="app-card"><div class="app-card-lbl">END DATE</div><div class="app-card-val">13 / 04 / 2026</div></div>
+          <div class="app-main-btn" id="appbtn">↓  Get Data</div>
+          <div class="app-minis">
+            <div class="app-mini">Clear Logs</div>
+            <div class="app-mini">⚙ Settings</div>
+            <div class="app-mini">Exit</div>
+          </div>
+          <div class="app-log">
+            <div class="app-ll g">17:30:01 | INFO | UI logging initialized.</div>
+            <div class="app-ll d">17:30:03 | INFO | Checking for updates...</div>
+            <div class="app-ll g">17:30:03 | INFO | Up to date (v1.1.1).</div>
+            <div class="app-ll g" id="appll"></div>
+          </div>
+        </div>
+        <div class="app-sb"><span>Status: Ready</span><span>By Aric Kaji</span></div>
+      </div>
     </div>
-    <div class="code-block">
-      <code>pip install -e .</code>
-      <button class="copy-btn" onclick="copyCode(this, 'pip install -e .')">Copy</button>
+    <div class="miss-wrap">
+      <div class="miss-banner">
+        <div class="miss-txt">5 days missing (Apr 06–10) — download now?</div>
+        <div style="display:flex;gap:7px;align-items:center">
+          <button class="miss-btn">Download missing</button>
+          <button class="miss-x" onclick="this.closest('.miss-wrap').style.visibility='hidden'">✕</button>
+        </div>
+      </div>
     </div>
-    <div class="code-block">
-      <code>python -m getbhavcopy</code>
-      <button class="copy-btn" onclick="copyCode(this, 'python -m getbhavcopy')">Copy</button>
-    </div>
-    <p class="install-note">On Windows, use <code style="font-family:var(--mono);color:var(--accent-fg)">pip install -e .</code> inside a virtual environment for best results.</p>
   </div>
 </section>
 
-<div class="divider"></div>
-
-<section class="changelog" id="changelog">
-  <div class="section-label">Changelog</div>
-  <h2 class="section-title">Release history</h2>
-  <p class="section-sub" style="margin-bottom:36px;">What's changed in each version.</p>
-
-  <div class="changelog-entry">
-    <div class="changelog-header">
-      <span class="version-badge">v1.1.1</span>
-      <span class="changelog-date">April 2026</span>
-    </div>
-    <ul>
-      <li>NSE holiday calendar — fetches official trading holidays from NSE API</li>
-      <li>Holidays skipped proactively before any download attempt</li>
-      <li>Calendar cached locally and auto-refreshed every 30 days</li>
-      <li>Headless catch-up checks today after 17:30 IST automatically</li>
-      <li>Failed dates cache with 2-day retry window for late NSE data</li>
-      <li>Graceful fallback if NSE API unavailable</li>
-    </ul>
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-track">
+    <div class="ticker-item">RELIANCE <span class="ticker-sep">▸</span> NIFTY50 <span class="ticker-sep">▸</span> INFY <span class="ticker-sep">▸</span> TCS <span class="ticker-sep">▸</span> HDFC <span class="ticker-sep">▸</span> ICICIBANK <span class="ticker-sep">▸</span> SBIN <span class="ticker-sep">▸</span> WIPRO <span class="ticker-sep">▸</span> HCL <span class="ticker-sep">▸</span> AXISBANK <span class="ticker-sep">▸</span> BAJFINANCE <span class="ticker-sep">▸</span> TITAN <span class="ticker-sep">▸</span> MARUTI <span class="ticker-sep">▸</span> ONGC <span class="ticker-sep">▸</span> NTPC <span class="ticker-sep">▸</span> POWERGRID <span class="ticker-sep">▸</span> COALINDIA <span class="ticker-sep">▸</span> JSWSTEEL <span class="ticker-sep">▸</span> TATASTEEL <span class="ticker-sep">▸</span> ADANIENT <span class="ticker-sep">▸</span> BANKNIFTY <span class="ticker-sep">▸</span> FINNIFTY <span class="ticker-sep">▸</span> SUNPHARMA <span class="ticker-sep">▸</span> CIPLA <span class="ticker-sep">▸</span> DRREDDY <span class="ticker-sep">▸</span></div>
+    <div class="ticker-item">RELIANCE <span class="ticker-sep">▸</span> NIFTY50 <span class="ticker-sep">▸</span> INFY <span class="ticker-sep">▸</span> TCS <span class="ticker-sep">▸</span> HDFC <span class="ticker-sep">▸</span> ICICIBANK <span class="ticker-sep">▸</span> SBIN <span class="ticker-sep">▸</span> WIPRO <span class="ticker-sep">▸</span> HCL <span class="ticker-sep">▸</span> AXISBANK <span class="ticker-sep">▸</span> BAJFINANCE <span class="ticker-sep">▸</span> TITAN <span class="ticker-sep">▸</span> MARUTI <span class="ticker-sep">▸</span> ONGC <span class="ticker-sep">▸</span> NTPC <span class="ticker-sep">▸</span> POWERGRID <span class="ticker-sep">▸</span> COALINDIA <span class="ticker-sep">▸</span> JSWSTEEL <span class="ticker-sep">▸</span> TATASTEEL <span class="ticker-sep">▸</span> ADANIENT <span class="ticker-sep">▸</span> BANKNIFTY <span class="ticker-sep">▸</span> FINNIFTY <span class="ticker-sep">▸</span> SUNPHARMA <span class="ticker-sep">▸</span> CIPLA <span class="ticker-sep">▸</span> DRREDDY <span class="ticker-sep">▸</span></div>
   </div>
+</div>
 
-  <div class="changelog-entry">
-    <div class="changelog-header">
-      <span class="version-badge">v1.1.0</span>
-      <span class="changelog-date">April 2026</span>
+<!-- FEATURES -->
+<section class="feat-bg" id="features">
+  <div class="si">
+    <span class="s-tag rv">Features</span>
+    <h2 class="s-title rv">Everything you need.<br><strong>Nothing you don't.</strong></h2>
+    <p class="s-sub rv">Built for reliability. Designed to disappear into your workflow and just work, every trading day.</p>
+    <div class="feat-grid">
+      <div class="fc rv d1"><span class="fc-icon">⬇</span><h3>Equity &amp; Indices</h3><p>Downloads both NSE equity and index bhavcopy in one operation. No manual steps, no website visits.</p><span class="fc-tag">sec_bhavdata_full + ind_close_all</span></div>
+      <div class="fc rv d2"><span class="fc-icon">🗓</span><h3>OS-Level Scheduler</h3><p>Mac LaunchAgent, Windows Task Scheduler, Linux crontab. Works even when the app is completely closed.</p><span class="fc-tag">Mac · Windows · Linux</span></div>
+      <div class="fc rv d3"><span class="fc-icon">🔁</span><h3>Missed Day Recovery</h3><p>Machine off on a trading day? Catches up automatically on the next run. Checks the last 7 trading days.</p><span class="fc-tag">Auto catch-up</span></div>
+      <div class="fc rv d1"><span class="fc-icon">🎌</span><h3>Holiday Aware</h3><p>Fetches NSE's official holiday calendar. Skips holidays proactively — zero failed attempts, zero noise.</p><span class="fc-tag">20 NSE holidays cached</span></div>
+      <div class="fc rv d2"><span class="fc-icon">⚡</span><h3>Parallel Downloads</h3><p>Up to 8 concurrent threads. Download weeks of historical bhavcopy data in seconds, not minutes.</p><span class="fc-tag">ThreadPoolExecutor</span></div>
+      <div class="fc rv d3"><span class="fc-icon">⇄</span><h3>Symbol Mapping</h3><p>Rename any NSE symbol to match your charting tool's exact naming. Saved permanently, applied automatically.</p><span class="fc-tag">AmiBroker compatible</span></div>
     </div>
-    <ul>
-      <li>Missed download recovery — auto-detects and fills gaps in bhavcopy data</li>
-      <li>Headless mode checks last 7 trading days on every run</li>
-      <li>Today included automatically after market closes at 17:30 IST</li>
-      <li>Holiday cache — known failed dates skipped automatically</li>
-      <li>2-day retry window handles late NSE data publication</li>
-      <li>Launch banner shows missing dates when app opens</li>
-      <li>Download missing button triggers catch-up with one click</li>
-    </ul>
-  </div>
-
-  <div class="changelog-entry">
-    <div class="changelog-header">
-      <span class="version-badge">v1.0.10.1</span>
-      <span class="changelog-date">April 2026</span>
-    </div>
-    <ul>
-      <li>Hotfix — Windows scheduler now correctly detects exe vs source install</li>
-      <li>Windows scheduler falls back to standard privileges if elevated creation fails</li>
-      <li>Scheduler toggle now shows red when disabled, green when enabled</li>
-      <li>Updated recommended download time to 17:30 IST</li>
-    </ul>
-  </div>
-
-  <div class="changelog-entry">
-    <div class="changelog-header">
-      <span class="version-badge">v1.0.10</span>
-      <span class="changelog-date">April 2026</span>
-    </div>
-    <ul>
-      <li>Scheduler — auto-download bhavcopy daily without opening the app</li>
-      <li>Mac: LaunchAgent, Windows: Task Scheduler, Linux: crontab</li>
-      <li>Headless mode — silent background download via OS scheduler</li>
-      <li>Smart time picker in Settings — HH:MM with auto-advance</li>
-      <li>Last used date range saved and restored on next launch</li>
-      <li>Desktop notification when scheduled download completes</li>
-    </ul>
-  </div>
-
-   <div class="changelog-entry">
-    <div class="changelog-header">
-      <span class="version-badge">v1.0.9.2</span>
-      <span class="changelog-date">April 2026</span>
-    </div>
-    <ul>
-      <li>Hotfix — SSL certificate error fixed for all Windows installations</li>
-      <li>Auto-update checker now works on all Windows version</li>
-      <li>Three-level SSL fallback — certifi, requests without verification, urllib</li>
-    </ul>
-  </div>
-
-  <div class="changelog-entry">
-    <div class="changelog-header">
-      <span class="version-badge">v1.0.9</span>
-      <span class="changelog-date">April 2026</span>
-    </div>
-    <ul>
-      <li>Settings window completely redesigned with sidebar navigation</li>
-      <li>Symbol Mapping and Performance sections in dedicated panels</li>
-      <li>Tab switching fixed — instant with no delay</li>
-      <li>Max workers slider in Performance panel</li>
-      <li>Scheduler, Output and Appearance sections coming soon</li>
-    </ul>
-  </div>
-
-  <div class="changelog-entry">
-    <div class="changelog-header">
-      <span class="version-badge">v1.0.8</span>
-      <span class="changelog-date">March 2026</span>
-    </div>
-    <ul>
-      <li>Auto-update checker — silent background check on startup</li>
-      <li>Update banner shown when new version is available</li>
-      <li>What's new popup with formatted release notes from GitHub</li>
-      <li>Direct download — detects OS and extracts correct platform build to Downloads folder</li>
-      <li>Mac .app bundle — no Python required</li>
-      <li>Windows .exe — no Python required</li>
-      <li>Automated GitHub Actions build pipeline for both platforms</li>
-    </ul>
-  </div>
-
-  <div class="changelog-entry">
-    <div class="changelog-header">
-      <span class="version-badge">v1.0.7</span>
-      <span class="changelog-date">March 2026</span>
-    </div>
-    <ul>
-      <li>Buy Me a Coffee support link added</li>
-      <li>GitHub FUNDING.yml sponsor button</li>
-      <li>CLI entry point — python -m getbhavcopy</li>
-      <li>PyPI packaging metadata and LICENSE file</li>
-    </ul>
-  </div>
-
-  <div class="changelog-entry">
-    <div class="changelog-header">
-      <span class="version-badge">v1.0.6</span>
-      <span class="changelog-date">March 2026</span>
-    </div>
-    <ul>
-      <li>Full UI redesign with customtkinter</li>
-      <li>Dark, light and system theme toggle with darkdetect</li>
-      <li>Settings window follows main window theme</li>
-      <li>Symbol mapping settings window with scrollable table</li>
-      <li>Colour coded log output — green, orange, red</li>
-      <li>Shorter timestamp format in UI logs</li>
-      <li>Cross-platform font support — SF Pro, Segoe UI, Ubuntu</li>
-      <li>Bug fix — log content preserved after theme toggle</li>
-      <li>Bug fix — mousewheel error after settings window closes</li>
-    </ul>
-  </div>
-
-  <div class="changelog-entry">
-    <div class="changelog-header">
-      <span class="version-badge" style="background:#232323;color:#aaaaaa">v1.0.0</span>
-      <span class="changelog-date">Initial release</span>
-    </div>
-    <ul>
-      <li>NSE equity and indices bhavcopy download</li>
-      <li>Date range selection with auto-advancing cursor</li>
-      <li>TXT and CSV export</li>
-      <li>AmiBroker compatible OHLCV output</li>
-      <li>Symbol mapping for custom naming</li>
-      <li>Rotating file logger</li>
-    </ul>
-  </div>
-
-  <div style="text-align:center;margin-top:24px;">
-    <a href="https://github.com/AricKaji/GetBhavCopy/releases" class="btn-secondary" style="display:inline-flex">
-      View all releases on GitHub →
-    </a>
   </div>
 </section>
 
+<!-- SCHEDULER -->
+<section class="sch-bg" id="scheduler">
+  <div class="si">
+    <span class="s-tag rv">How the scheduler works</span>
+    <h2 class="s-title rv">Set it once.<br><strong>Get data forever.</strong></h2>
+    <p class="s-sub rv">No background process. No app always running. The OS itself triggers the download at exactly 17:30 IST.</p>
+    <div class="sch-grid">
+      <div class="rv">
+        <div class="step"><div class="step-n">01</div><div><div class="step-h">Open Settings → Scheduler</div><div class="step-p">Enable the toggle, set time to 17:30 IST. NSE closes at 15:30 and data is available by 17:30.</div></div></div>
+        <div class="step"><div class="step-n">02</div><div><div class="step-h">Click Save — OS task registered</div><div class="step-p">Mac creates a LaunchAgent. Windows creates a Task Scheduler task. Linux adds a crontab entry.</div></div></div>
+        <div class="step"><div class="step-n">03</div><div><div class="step-h">Close the app completely</div><div class="step-p">GetBhavCopy does not need to stay open. The OS manages the schedule entirely on its own.</div></div></div>
+        <div class="step"><div class="step-n">04</div><div><div class="step-h">Data arrives, notification sent</div><div class="step-p">At 17:30 the OS launches GetBhavCopy in headless mode. Downloads silently. You get a notification.</div></div></div>
+        <div class="step"><div class="step-n">05</div><div><div class="step-h">Machine was off? No problem.</div><div class="step-p">Next scheduler run checks the last 7 trading days and fills any gaps automatically.</div></div></div>
+      </div>
+      <div class="rv d2">
+        <div class="sp-panel">
+          <div class="sp-bar">
+            <div class="sp-dot2" style="background:#ff5f57"></div>
+            <div class="sp-dot2" style="background:#ffbd2e;margin-left:4px"></div>
+            <div class="sp-dot2" style="background:#28ca41;margin-left:4px"></div>
+            <span style="margin-left:10px">Preferences — GetBhavCopy</span>
+          </div>
+          <div class="sp-body">
+            <div class="sp-row"><div><div class="sp-lbl">Enable Scheduled Downloads</div><div class="sp-desc">Works even when the app is closed — OS handles it.</div></div><div class="sp-toggle"></div></div>
+            <div style="height:1px;background:var(--border);margin:10px 0"></div>
+            <div class="sp-time-row">
+              <div><div class="sp-time-lbl">Download Time</div><div style="font-size:9px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace">NSE closes 15:30 IST</div></div>
+              <div class="sp-time-val"><span class="sp-dig">17</span><span style="color:var(--text);font-weight:300">:</span><span class="sp-dig">30</span></div>
+            </div>
+            <div class="sp-info">Uses OS-level scheduling — works even when the app is closed. Mac uses LaunchAgent, Windows uses Task Scheduler, Linux uses crontab.</div>
+          </div>
+        </div>
+        <div class="nm">
+          <div class="nm-i">
+            <div class="nm-ic">📊</div>
+            <div>
+              <div class="nm-app">GetBhavCopy · 17:30</div>
+              <div class="nm-title">Bhavcopy downloaded successfully.</div>
+              <div class="nm-body">2026-04-14-NSE-EQ.txt saved to ~/DATA</div>
+            </div>
+          </div>
+          <div class="nm-bar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-bg" style="text-align:center">
+  <div class="si">
+    <span class="s-tag rv" style="display:block">Simple setup</span>
+    <h2 class="s-title rv">Running in <strong>4 steps.</strong></h2>
+    <div class="how-grid">
+      <div class="hw rv d1"><span class="hw-step">STEP 01</span><span class="hw-icon">⬇</span><h4>Download</h4><p>Mac .app or Windows .exe — no Python required.</p></div>
+      <div class="hw rv d2"><span class="hw-step">STEP 02</span><span class="hw-icon">📁</span><h4>Set folder</h4><p>Point to your AmiBroker or charting platform data folder.</p></div>
+      <div class="hw rv d3"><span class="hw-step">STEP 03</span><span class="hw-icon">⏱</span><h4>Enable scheduler</h4><p>Settings → Scheduler → Enable → 17:30 → Save. Done forever.</p></div>
+      <div class="hw rv d4"><span class="hw-step">STEP 04</span><span class="hw-icon">✓</span><h4>Walk away</h4><p>Data arrives every trading day at 17:30 IST automatically.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PLATFORMS -->
+<section class="plat-bg">
+  <div class="si" style="text-align:center">
+    <span class="s-tag rv" style="display:block">Cross platform</span>
+    <h2 class="s-title rv">Works everywhere <strong>traders work.</strong></h2>
+    <div class="plat-grid">
+      <div class="plat-card rv d1"><span class="plat-icon">🍎</span><div class="plat-name">macOS</div><div class="plat-detail">LaunchAgent · .app bundle</div><span class="plat-badge pg">No Python required</span></div>
+      <div class="plat-card rv d2"><span class="plat-icon">🪟</span><div class="plat-name">Windows</div><div class="plat-detail">Task Scheduler · .exe</div><span class="plat-badge pb">No Python required</span></div>
+      <div class="plat-card rv d3"><span class="plat-icon">🐧</span><div class="plat-name">Linux</div><div class="plat-detail">crontab · source install</div><span class="plat-badge po">Python 3.10+</span></div>
+    </div>
+    <div style="margin-top:36px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap" class="rv">
+      <a id="bmac" href="https://github.com/AricKaji/GetBhavCopy/releases/latest" class="btn-primary">🍎 Download for Mac</a>
+      <a id="bwin" href="https://github.com/AricKaji/GetBhavCopy/releases/latest" class="btn-link" style="border:1px solid var(--border);padding:12px 22px;border-radius:10px">🪟 Download for Windows</a>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section class="install-bg" id="install">
+  <div class="si" style="text-align:center">
+    <span class="s-tag rv" style="display:block">Install from source</span>
+    <h2 class="s-title rv">For <strong>developers.</strong></h2>
+    <p style="font-size:13px;color:var(--text2);margin:0 auto;max-width:360px;font-weight:300" class="rv">Requires Python 3.10+</p>
+    <div class="term rv" id="tshell">
+      <div class="term-bar">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#ffbd2e;margin-left:4px"></div>
+        <div class="term-dot" style="background:#28ca41;margin-left:4px"></div>
+        <span class="term-lbl">Terminal</span>
+      </div>
+      <div class="term-body" id="tbody"><span class="tblink"></span></div>
+    </div>
+    <div class="cbs rv" style="margin-top:12px">
+      <div class="cb"><code>git clone https://github.com/AricKaji/GetBhavCopy.git</code><button class="cpb" onclick="cp(this,'git clone https://github.com/AricKaji/GetBhavCopy.git')">Copy</button></div>
+      <div class="cb"><code>pip install -e .</code><button class="cpb" onclick="cp(this,'pip install -e .')">Copy</button></div>
+      <div class="cb"><code>python -m getbhavcopy</code><button class="cpb" onclick="cp(this,'python -m getbhavcopy')">Copy</button></div>
+      <div class="cb"><code>python -m getbhavcopy --headless</code><button class="cpb" onclick="cp(this,'python -m getbhavcopy --headless')">Copy</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- CHANGELOG -->
+<section class="cl-bg" id="changelog">
+  <div class="si" style="text-align:center">
+    <span class="s-tag rv" style="display:block">Changelog</span>
+    <h2 class="s-title rv">Release <strong>history.</strong></h2>
+    <div class="cl-list">
+      <div class="cle rv"><div class="clh"><span class="clb lat">v1.1.1</span><span class="cld">April 2026</span></div><ul class="cli"><li>NSE holiday calendar — fetches official trading holidays from NSE API</li><li>Holidays skipped proactively before any download attempt</li><li>Calendar cached locally, auto-refreshed every 30 days</li><li>Headless catch-up checks today automatically after 17:30 IST</li><li>2-day retry window handles late NSE data publication</li></ul></div>
+      <div class="cle rv"><div class="clh"><span class="clb lat">v1.1.0</span><span class="cld">April 2026</span></div><ul class="cli"><li>Missed download recovery — auto-detects and fills data gaps</li><li>Launch banner shows missing dates with one-click download</li><li>Headless mode checks last 7 trading days on every run</li><li>Failed dates cache prevents retrying holidays forever</li></ul></div>
+      <div class="cle rv"><div class="clh"><span class="clb lat">v1.0.10</span><span class="cld">April 2026</span></div><ul class="cli"><li>OS-level scheduler — Mac LaunchAgent, Windows Task Scheduler, Linux crontab</li><li>Headless mode — silent background download via --headless flag</li><li>Smart time picker with HH:MM validation and auto-advance</li></ul></div>
+      <div class="cle rv"><div class="clh"><span class="clb old">v1.0.9</span><span class="cld">April 2026</span></div><ul class="cli"><li>Settings redesigned with professional sidebar navigation</li><li>Symbol Mapping, Performance and Scheduler panels</li><li>Modular architecture — config.py, scheduler.py, notifications.py</li></ul></div>
+    </div>
+    <div style="margin-top:24px" class="rv">
+      <a href="https://github.com/AricKaji/GetBhavCopy/releases" class="btn-link" style="display:inline-flex;border:1px solid var(--border);padding:10px 22px;border-radius:9px">View all releases →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
 <footer>
-  <div class="footer-left">
-    © 2026 GetBhavCopy · Built by <a href="https://github.com/AricKaji" style="color:var(--fg2)">Aric Kaji</a> · MIT License
-  </div>
-  <div class="footer-right">
+  <div class="fl">© 2026 GetBhavCopy · Built by <a href="https://github.com/AricKaji">Aric Kaji</a> · MIT License</div>
+  <div class="fr">
     <a href="https://github.com/AricKaji/GetBhavCopy">GitHub</a>
     <a href="https://github.com/AricKaji/GetBhavCopy/releases">Releases</a>
     <a href="https://github.com/AricKaji/GetBhavCopy/issues">Issues</a>
-    <a href="https://buymeacoffee.com/AricKaji" target="_blank" style="color:#FFDD00;">☕ Buy Me a Coffee</a>
+    <a href="https://github.com/AricKaji/GetBhavCopy/wiki">Wiki</a>
+    <a href="https://buymeacoffee.com/AricKaji" target="_blank" style="color:#f59e0b">☕ Support</a>
   </div>
 </footer>
 
 <script>
-function copyCode(btn, text) {
+// ── THEME ──
+const tbtn = document.getElementById('tbtn');
+let dark = true;
+tbtn.addEventListener('click', () => {
+  dark = !dark;
+  document.documentElement.setAttribute('data-theme', dark ? '' : 'light');
+  tbtn.textContent = dark ? '🌙' : '☀️';
+  // Rebuild canvas on theme change
+  buildCanvas();
+});
+
+// ── CANVAS — particles + ultra-subtle candles ──
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let particles = [], candles = [];
+
+function buildCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const pColor = isDark ? 'rgba(52,211,153,' : 'rgba(22,101,52,';
+  const cColor = isDark ? 'rgba(52,211,153,' : 'rgba(22,101,52,';
+
+  // Slow, sparse particles
+  const syms = ['RELIANCE','NIFTY50','INFY','TCS','HDFC','SBIN','HCL','NSE','17:30','✓','SAVED'];
+  particles = [];
+  const colCount = Math.floor(canvas.width / 52);
+  for(let i = 0; i < colCount; i++) {
+    particles.push({
+      x: i * 52 + 10 + Math.random() * 26,
+      y: Math.random() * canvas.height,
+      speed: 0.10 + Math.random() * 0.15,
+      sym: syms[Math.floor(Math.random() * syms.length)],
+      alpha: isDark ? (0.012 + Math.random() * 0.022) : (0.04 + Math.random() * 0.06),
+      life: Math.random() * 300,
+      maxLife: 260 + Math.random() * 200,
+      pColor,
+    });
+  }
+
+  // Ultra-subtle candles — very thin, very low opacity
+  candles = [];
+  const cCount = 14;
+  for(let i = 0; i < cCount; i++) {
+    const bullish = Math.random() > 0.4;
+    const bodyH = 16 + Math.random() * 36;
+    const baseY = canvas.height * 0.25 + Math.random() * canvas.height * 0.55;
+    candles.push({
+      x: (canvas.width / (cCount + 1)) * (i + 1) + (Math.random() - 0.5) * 30,
+      bodyY: baseY,
+      bodyH,
+      wickTop: baseY - (4 + Math.random() * 14),
+      wickBot: baseY + bodyH + (4 + Math.random() * 14),
+      w: 5 + Math.random() * 5,
+      bullish,
+      alpha: isDark ? (0.025 + Math.random() * 0.035) : (0.05 + Math.random() * 0.06),
+      phase: Math.random() * Math.PI * 2,
+      spd: 0.0015 + Math.random() * 0.0025,
+      cColor,
+    });
+  }
+}
+
+buildCanvas();
+window.addEventListener('resize', buildCanvas);
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Candles — ultra thin, barely visible
+  candles.forEach(c => {
+    c.phase += c.spd;
+    const drift = Math.sin(c.phase) * 3;
+    const a = c.alpha;
+    ctx.strokeStyle = c.cColor + a + ')';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.wickTop + drift);
+    ctx.lineTo(c.x, c.wickBot + drift);
+    ctx.stroke();
+    ctx.fillStyle = c.cColor + (a * 0.9) + ')';
+    ctx.fillRect(c.x - c.w / 2, c.bodyY + drift, c.w, c.bodyH);
+  });
+
+  // Particles — slow fade in/out
+  particles.forEach(p => {
+    p.y += p.speed;
+    p.life++;
+    if(p.life > p.maxLife || p.y > canvas.height + 14) {
+      p.life = 0;
+      p.y = -14;
+      p.x = Math.random() * canvas.width;
+      const syms = ['RELIANCE','NIFTY50','INFY','TCS','HDFC','SBIN','HCL','NSE','17:30','✓','SAVED'];
+      p.sym = syms[Math.floor(Math.random() * syms.length)];
+    }
+    const fade = Math.min(p.life / 50, 1) * Math.min((p.maxLife - p.life) / 50, 1);
+    ctx.font = '9px JetBrains Mono';
+    ctx.fillStyle = p.pColor + (p.alpha * fade) + ')';
+    ctx.fillText(p.sym, p.x, p.y);
+  });
+
+  requestAnimationFrame(draw);
+}
+draw();
+
+// ── 3D TILT ──
+const appwin = document.getElementById('appwin');
+document.addEventListener('mousemove', e => {
+  const r = appwin.getBoundingClientRect();
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height / 2;
+  const dx = (e.clientX - cx) / (window.innerWidth * 0.3);
+  const dy = (e.clientY - cy) / (window.innerHeight / 2);
+  appwin.style.transform = `rotateX(${-dy * 5}deg) rotateY(${dx * 4}deg)`;
+});
+document.addEventListener('mouseleave', () => { appwin.style.transform = ''; });
+
+// ── SCHEDULER STATUS PILL (real IST time) ──
+const spdot = document.getElementById('spdot');
+const spmain = document.getElementById('spmain');
+const spsub = document.getElementById('spsub');
+
+function updateStatus() {
+  const now = new Date();
+  const ist = new Date(now.toLocaleString('en-US', {timeZone:'Asia/Kolkata'}));
+  const h = ist.getHours(), m = ist.getMinutes();
+  const t = h * 60 + m;
+  if(t < 9*60+15) {
+    spdot.className='sp-dot idle';
+    spmain.textContent='Pre-market hours';
+    spsub.textContent='Scheduler fires today at 17:30 IST';
+  } else if(t < 15*60+30) {
+    spdot.className='sp-dot';
+    spmain.textContent='Market open';
+    spsub.textContent='Scheduled download at 17:30 IST';
+  } else if(t < 17*60+30) {
+    spdot.className='sp-dot';
+    spmain.textContent='Market closed · NSE publishing data';
+    spsub.textContent='Scheduler triggers at 17:30 IST';
+  } else {
+    spdot.className='sp-dot';
+    spmain.textContent='Scheduler active';
+    spsub.textContent='Next download tomorrow at 17:30 IST';
+  }
+}
+updateStatus();
+setInterval(updateStatus, 60000);
+
+// ── LIVE LOG IN APP WINDOW ──
+const idleLogs = [
+  {g:true,  t:'17:30:04 | INFO | NSE holidays — 20 cached'},
+  {g:true,  t:'17:30:05 | INFO | Saved 2026-04-13-NSE-EQ.txt ✓'},
+  {g:false, t:'17:30:05 | INFO | All files present — done'},
+  {g:true,  t:'17:30:01 | INFO | Headless complete in 1.48s'},
+];
+let ili = 0;
+const appll = document.getElementById('appll');
+setInterval(() => {
+  const l = idleLogs[ili++ % idleLogs.length];
+  appll.className = 'app-ll ' + (l.g ? 'g' : 'd');
+  appll.textContent = l.t;
+}, 2800);
+
+// ── COUNTER ANIMATION ──
+function animC(el, target, suf, delay) {
+  setTimeout(() => {
+    const dur = 1600, st = performance.now();
+    const f = t => {
+      const p = Math.min((t - st) / dur, 1);
+      el.textContent = Math.floor((1 - Math.pow(1 - p, 3)) * target).toLocaleString() + suf;
+      if(p < 1) requestAnimationFrame(f);
+      else el.textContent = target.toLocaleString() + suf;
+    };
+    requestAnimationFrame(f);
+  }, delay);
+}
+document.querySelectorAll('[data-count]').forEach((el, i) => {
+  animC(el, parseInt(el.dataset.count), el.dataset.suf || '', 700 + i * 150);
+});
+
+// ── TYPING TERMINAL ──
+const termLines = [
+  {t:'cmd', tx:'git clone https://github.com/AricKaji/GetBhavCopy.git'},
+  {t:'out', tx:"Cloning 'GetBhavCopy'... done."},
+  {t:'cmd', tx:'cd GetBhavCopy && pip install -e .'},
+  {t:'out', tx:'Successfully installed getbhavcopy-1.1.1'},
+  {t:'cmd', tx:'python -m getbhavcopy --headless'},
+  {t:'suc', tx:'Headless download for 2026-04-14'},
+  {t:'suc', tx:'NSE holidays checked — 20 cached'},
+  {t:'suc', tx:'Saved 2026-04-14-NSE-EQ.txt ✓  [1.48s]'},
+  {t:'cmd', tx:'python -m getbhavcopy'},
+  {t:'suc', tx:'UI initialized · Up to date (v1.1.1)'},
+];
+let termStarted = false;
+const tshell = document.getElementById('tshell');
+const tbody = document.getElementById('tbody');
+new IntersectionObserver(e => {
+  if(e[0].isIntersecting && !termStarted) {
+    termStarted = true;
+    tbody.innerHTML = '';
+    runT(0);
+  }
+}, {threshold:.3}).observe(tshell);
+
+function runT(i) {
+  if(i >= termLines.length) {
+    const c = document.createElement('span');
+    c.className = 'tblink';
+    tbody.appendChild(c);
+    return;
+  }
+  const line = termLines[i];
+  const div = document.createElement('div');
+  div.className = 'tl';
+  if(line.t === 'cmd') {
+    div.innerHTML = '<span class="pr">$ </span><span class="cmd"></span>';
+    tbody.appendChild(div);
+    typeT(div.querySelector('.cmd'), line.tx, 22, () => setTimeout(() => runT(i+1), 150));
+  } else {
+    const cls = line.t === 'suc' ? 'suc' : 'out';
+    line.tx.split('\n').forEach(tx => {
+      const d = document.createElement('div');
+      d.className = 'tl';
+      d.innerHTML = `<span class="${cls}">${tx}</span>`;
+      tbody.appendChild(d);
+    });
+    setTimeout(() => runT(i+1), 100);
+  }
+  tbody.scrollTop = tbody.scrollHeight;
+}
+function typeT(el, text, spd, done) {
+  let i = 0;
+  const t = setInterval(() => {
+    el.textContent += text[i++];
+    if(i >= text.length) { clearInterval(t); done && done(); }
+  }, spd);
+}
+
+// ── SCROLL REVEAL ──
+new IntersectionObserver(e => {
+  e.forEach(x => { if(x.isIntersecting) x.target.classList.add('vis'); });
+}, {threshold:.07}).observe(document.body);
+const rvObs = new IntersectionObserver(e => {
+  e.forEach(x => { if(x.isIntersecting) x.target.classList.add('vis'); });
+}, {threshold:.07});
+document.querySelectorAll('.rv').forEach(el => rvObs.observe(el));
+
+// ── COPY ──
+function cp(btn, text) {
   navigator.clipboard.writeText(text).then(() => {
     btn.textContent = 'Copied!';
-    btn.style.color = '#80ff80';
+    btn.style.color = 'var(--green)';
     setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
   });
 }
 
-async function fetchLatestRelease() {
+// ── GITHUB API ──
+async function loadGH() {
   try {
-    const res = await fetch('https://api.github.com/repos/AricKaji/GetBhavCopy/releases/latest');
-    const data = await res.json();
-    const tag = data.tag_name || 'v1.1.1';
-    const assets = data.assets || [];
-
-    const winAsset = assets.find(a => a.name.toLowerCase().includes('windows'));
-    const macAsset = assets.find(a => a.name.toLowerCase().includes('mac'));
-
-    document.getElementById('nav-version').textContent = tag;
-
-    if (winAsset) document.getElementById('btn-windows').href = winAsset.browser_download_url;
-    if (macAsset) document.getElementById('btn-mac').href = macAsset.browser_download_url;
-
-    const heroBtn = document.getElementById('btn-download-latest');
-    const navDownload = document.getElementById('nav-download');
+    const r = await fetch('https://api.github.com/repos/AricKaji/GetBhavCopy/releases/latest');
+    const d = await r.json();
+    const a = d.assets || [];
+    const wa = a.find(x => x.name.toLowerCase().includes('windows'));
+    const ma = a.find(x => x.name.toLowerCase().includes('mac'));
+    if(wa) document.getElementById('bwin').href = wa.browser_download_url;
+    if(ma) document.getElementById('bmac').href = ma.browser_download_url;
     const ua = navigator.userAgent.toLowerCase();
-
-    if (ua.includes('win') && winAsset) {
-      heroBtn.href = winAsset.browser_download_url;
-      heroBtn.textContent = '↓ Download for Windows — ' + tag;
-      navDownload.href = winAsset.browser_download_url;
-    } else if ((ua.includes('mac') || ua.includes('iphone') || ua.includes('ipad')) && macAsset) {
-      heroBtn.href = macAsset.browser_download_url;
-      heroBtn.textContent = '↓ Download for Mac — ' + tag;
-      navDownload.href = macAsset.browser_download_url;
-    } else {
-      heroBtn.href = 'https://github.com/AricKaji/GetBhavCopy/releases/latest';
-      heroBtn.textContent = '↓ Download ' + tag;
+    const hd = document.getElementById('hdl');
+    const nd = document.getElementById('ndl');
+    if(ua.includes('win') && wa) {
+      hd.href = wa.browser_download_url;
+      hd.textContent = '↓ Download for Windows';
+      nd.href = wa.browser_download_url;
+    } else if(ua.includes('mac') && ma) {
+      hd.href = ma.browser_download_url;
+      hd.textContent = '↓ Download for Mac';
+      nd.href = ma.browser_download_url;
     }
-
-    const note = document.getElementById('version-note');
-    if (note) note.textContent = 'Latest: ' + tag + ' — download starts automatically for your platform';
-
-  } catch (e) {
-    const note = document.getElementById('version-note');
-    if (note) note.textContent = '';
-  }
+  } catch(e) {}
+  try {
+    const r2 = await fetch('https://api.github.com/repos/AricKaji/GetBhavCopy');
+    const d2 = await r2.json();
+    const s = d2.stargazers_count || 0;
+    document.getElementById('sc').textContent = s > 0 ? `★ ${s}` : 'GitHub';
+  } catch(e) {}
 }
-
-fetchLatestRelease();
+loadGH();
 </script>
-
 </body>
 </html>
