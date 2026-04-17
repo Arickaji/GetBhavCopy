@@ -51,3 +51,6 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 addopts = "--cov=getbhavcopy --cov-report=term-missing --cov-fail-under=20"
 pythonpath = ["src"]
+
+[project.optional-dependencies]
+windows = ["winotify"]
