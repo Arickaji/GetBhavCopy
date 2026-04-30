@@ -56,7 +56,7 @@ prompt_toolkit==3.0.52
 ptyprocess==0.7.0
 pure_eval==0.2.3
 Pygments==2.19.2
-pytest==9.0.2
+pytest==9.0.3
 pytest-cov==7.0.0
 python-dateutil==2.9.0.post0
 python-discovery==1.1.3
