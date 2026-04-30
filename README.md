@@ -212,6 +212,13 @@ pre-commit run
 
 ## Changelog
 
+## What's new in v1.2.0
+
+- **Appearance settings** — switch between System, Dark and Light theme instantly
+- **Custom filename patterns** — rename output files using `{date}` placeholders
+- **Split equity and indices** — save as two separate files with individual naming
+- **Windows notifications** — upgraded to winotify for native Win10/11 support
+
 ### v1.1.1 — April 2026
 - NSE holiday calendar — fetches official trading holidays from NSE API
 - Holidays skipped proactively before any download attempt
