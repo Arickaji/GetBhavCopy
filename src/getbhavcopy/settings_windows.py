@@ -225,6 +225,12 @@ class SettingsWindow:
         self._schedule_hour_var = _SV(value=_t[0].zfill(2))
         self._schedule_min_var = _SV(value=_t[1].zfill(2))
 
+        self._theme_var = _SV(value=cfg.get("theme", "system"))
+        self._log_size_var = _SV(value=cfg.get("log_size", "medium"))
+        self._filename_prefix_var = _SV(value=cfg.get("filename_pattern", ""))
+        self._idx_filename_prefix_var = _SV(value=cfg.get("idx_filename_pattern", ""))
+        self._split_files_var = BooleanVar(value=bool(cfg.get("split_eq_idx", False)))
+
         self._build_root()
         self._load_existing()
         if not self._rows:
@@ -296,15 +302,25 @@ class SettingsWindow:
         pm = F(self._switcher, bg=self._p["CONTENT_BG"])
         pp = F(self._switcher, bg=self._p["CONTENT_BG"])
         ps = F(self._switcher, bg=self._p["CONTENT_BG"])
+        pa = F(self._switcher, bg=self._p["CONTENT_BG"])
+        po = F(self._switcher, bg=self._p["CONTENT_BG"])
 
-        for panel in (pm, pp, ps):
+        for panel in (pm, pp, ps, pa, po):
             panel.grid(row=0, column=0, sticky="nsew")
 
         self._build_panel_mapping(pm)
         self._build_panel_performance(pp)
         self._build_panel_scheduler(ps)
+        self._build_panel_appearance(pa)
+        self._build_panel_output(po)
         self._setup_time_validators()
-        self._panels = {"mapping": pm, "performance": pp, "scheduler": ps}
+        self._panels = {
+            "mapping": pm,
+            "performance": pp,
+            "scheduler": ps,
+            "appearance": pa,
+            "output": po,
+        }
 
         self._build_topbar("mapping")
         self.win.after(10, lambda: self._switch("mapping"))
@@ -360,7 +376,7 @@ class SettingsWindow:
 
         Label(
             self._sb,
-            text="COMING SOON",
+            text="AUTOMATION",
             font=(self.FONT, 9),
             fg=self._p["SEC_FG"],
             bg=self._p["SB_BG"],
@@ -371,8 +387,7 @@ class SettingsWindow:
             ("output", "Output"),
             ("appearance", "Appearance"),
         ]:
-            disabled = key != "scheduler"
-            self._nav_item(key, label, disabled=disabled)
+            self._nav_item(key, label, disabled=False)
 
     def _nav_item(self, key: str, label: str, disabled: bool) -> None:
         from tkinter import Frame, Label
@@ -492,6 +507,14 @@ class SettingsWindow:
             "scheduler": (
                 "Scheduler",
                 "Auto-download today's bhavcopy at a set time every day",
+            ),
+            "appearance": (
+                "Appearance",
+                "Customise theme and log text size",
+            ),
+            "output": (
+                "Output",
+                "Configure output folders and filename pattern",
             ),
         }
 
@@ -907,6 +930,388 @@ class SettingsWindow:
         else:
             self._enable_switch.configure(button_color=self._p["TOGGLE_OFF"])
 
+    def _build_panel_appearance(self, parent: object) -> None:
+        from tkinter import Frame, Label
+
+        outer = Frame(parent, bg=self._p["CONTENT_BG"])  # type: ignore[arg-type]
+        outer.pack(fill="both", expand=True, padx=28, pady=20)
+
+        theme_card = Frame(
+            outer,
+            bg=self._p["CARD_BG"],
+            highlightbackground=self._p["SEP"],
+            highlightthickness=1,
+            padx=22,
+            pady=18,
+        )
+        theme_card.pack(fill="x")
+
+        Label(
+            theme_card,
+            text="Appearance",
+            font=(self.FONT, 13, "bold"),
+            fg=self._p["FG1"],
+            bg=self._p["CARD_BG"],
+        ).pack(anchor="w", pady=(0, 4))
+
+        Label(
+            theme_card,
+            text="Choose how GetBhavCopy looks. System follows your OS setting.",
+            font=(self.FONT, 11),
+            fg=self._p["FG3"],
+            bg=self._p["CARD_BG"],
+            justify="left",
+        ).pack(anchor="w", pady=(0, 14))
+
+        theme_row = Frame(theme_card, bg=self._p["CARD_BG"])
+        theme_row.pack(anchor="w")
+
+        for val, label in [
+            ("system", "System"),
+            ("dark", "Dark"),
+            ("light", "Light"),
+        ]:
+            ctk.CTkRadioButton(
+                theme_row,
+                text=label,
+                variable=self._theme_var,
+                value=val,
+                font=(self.FONT, 12),
+                text_color=self._p["FG2"],
+                fg_color=self._p["ACCENT"],
+                hover_color=self._p["ACCENT"],
+                border_color=self._p["SEP"],
+                command=self._on_theme_change,
+            ).pack(side="left", padx=(0, 20))
+
+        log_card = Frame(
+            outer,
+            bg=self._p["CARD_BG"],
+            highlightbackground=self._p["SEP"],
+            highlightthickness=1,
+            padx=22,
+            pady=18,
+        )
+        log_card.pack(fill="x", pady=(12, 0))
+
+        Label(
+            log_card,
+            text="Log Text Size",
+            font=(self.FONT, 13, "bold"),
+            fg=self._p["FG1"],
+            bg=self._p["CARD_BG"],
+        ).pack(anchor="w", pady=(0, 4))
+
+        Label(
+            log_card,
+            text="Controls the font size in the Application Logs panel.",
+            font=(self.FONT, 11),
+            fg=self._p["FG3"],
+            bg=self._p["CARD_BG"],
+            justify="left",
+        ).pack(anchor="w", pady=(0, 14))
+
+        size_row = Frame(log_card, bg=self._p["CARD_BG"])
+        size_row.pack(anchor="w")
+
+        for val, label in [
+            ("small", "Small"),
+            ("medium", "Medium"),
+            ("large", "Large"),
+        ]:
+            ctk.CTkRadioButton(
+                size_row,
+                text=label,
+                variable=self._log_size_var,
+                value=val,
+                font=(self.FONT, 12),
+                text_color=self._p["FG2"],
+                fg_color=self._p["ACCENT"],
+                hover_color=self._p["ACCENT"],
+                border_color=self._p["SEP"],
+            ).pack(side="left", padx=(0, 20))
+
+        info = Frame(
+            outer,
+            bg=self._p["INFO_BG"],
+            highlightbackground=self._p["INFO_BORDER"],
+            highlightthickness=1,
+            padx=16,
+            pady=12,
+        )
+        info.pack(fill="x", pady=(16, 0))
+
+        Label(
+            info,
+            text="Theme changes take effect immediately. "
+            "Log size applies on next app launch.",
+            font=(self.FONT, 11),
+            fg=self._p["INFO_FG"],
+            bg=self._p["INFO_BG"],
+            wraplength=480,
+            justify="left",
+        ).pack(anchor="w")
+
+    def _on_theme_change(self) -> None:
+        try:
+            ctk.set_appearance_mode(self._theme_var.get())
+        except Exception:
+            pass
+
+    def _on_split_toggle(self) -> None:
+        self._apply_split_state()
+
+    def _apply_split_state(self) -> None:
+        split = self._split_files_var.get()
+        if split:
+            self._split_switch.configure(button_color=self._p["TOGGLE_ON"])
+            if hasattr(self, "_idx_entry"):
+                self._idx_entry.configure(
+                    state="normal",
+                    text_color=self._p["ENTRY_FG"],
+                    border_color=self._p["SEP"],
+                )
+        else:
+            self._split_switch.configure(button_color=self._p["TOGGLE_OFF"])
+            if hasattr(self, "_idx_entry"):
+                self._idx_entry.configure(
+                    state="disabled",
+                    text_color=self._p["FG4"],
+                    border_color=self._p["SEP"],
+                )
+        self._update_output_previews()
+
+    def _update_output_previews(self) -> None:
+        eq_pat = self._filename_prefix_var.get().strip() or "{date}-NSE-EQ"
+        if hasattr(self, "_eq_preview"):
+            self._eq_preview.config(
+                text="→ " + eq_pat.replace("{date}", "2026-04-13") + ".txt"
+            )
+        idx_pat = self._idx_filename_prefix_var.get().strip() or "{date}-NSE-IDX"
+        if hasattr(self, "_idx_preview"):
+            self._idx_preview.config(
+                text="→ " + idx_pat.replace("{date}", "2026-04-13") + ".txt"
+            )
+
+    def _build_panel_output(self, parent: object) -> None:
+        from tkinter import Canvas, Frame, Label
+
+        # scrollable container
+        container = Frame(parent, bg=self._p["CONTENT_BG"])  # type: ignore[arg-type]
+        container.pack(fill="both", expand=True)
+
+        _canvas = Canvas(
+            container,
+            bg=self._p["CONTENT_BG"],
+            highlightthickness=0,
+            bd=0,
+        )
+        _sb = ctk.CTkScrollbar(
+            container,
+            orientation="vertical",
+            command=_canvas.yview,
+            width=self.SB_W,
+            fg_color=self._p["CONTENT_BG"],
+            button_color=self._p["SEP"],
+            button_hover_color=self._p["FG3"],
+        )
+        _canvas.configure(yscrollcommand=_sb.set)
+        _sb.pack(side="right", fill="y")
+        _canvas.pack(side="left", fill="both", expand=True)
+
+        inner_frame = Frame(_canvas, bg=self._p["CONTENT_BG"])
+        _win_id = _canvas.create_window((0, 0), window=inner_frame, anchor="nw")
+
+        inner_frame.bind(
+            "<Configure>",
+            lambda e: _canvas.configure(scrollregion=_canvas.bbox("all")),
+        )
+        _canvas.bind(
+            "<Configure>",
+            lambda e: _canvas.itemconfig(
+                _win_id, width=getattr(e, "width", _canvas.winfo_width())
+            ),
+        )
+
+        # bind scroll on the canvas itself
+        def _out_scroll(e: object) -> None:
+            from tkinter import Event
+
+            if not isinstance(e, Event):
+                return
+            if e.num == 4:
+                _canvas.yview_scroll(-1, "units")
+            elif e.num == 5:
+                _canvas.yview_scroll(1, "units")
+            elif getattr(e, "delta", 0):
+                _canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
+
+        _canvas.bind("<MouseWheel>", _out_scroll)
+        _canvas.bind("<Button-4>", _out_scroll)
+        _canvas.bind("<Button-5>", _out_scroll)
+        inner_frame.bind("<MouseWheel>", _out_scroll)
+        inner_frame.bind("<Button-4>", _out_scroll)
+        inner_frame.bind("<Button-5>", _out_scroll)
+
+        outer = Frame(inner_frame, bg=self._p["CONTENT_BG"])
+        outer.pack(fill="both", expand=True, padx=28, pady=20)
+
+        # ── Filename patterns card (both together) ────────────────────────────
+        pat_card = Frame(
+            outer,
+            bg=self._p["CARD_BG"],
+            highlightbackground=self._p["SEP"],
+            highlightthickness=1,
+            padx=22,
+            pady=18,
+        )
+        pat_card.pack(fill="x")
+
+        Label(
+            pat_card,
+            text="Filename Patterns",
+            font=(self.FONT, 13, "bold"),
+            fg=self._p["FG1"],
+            bg=self._p["CARD_BG"],
+        ).pack(anchor="w", pady=(0, 4))
+
+        Label(
+            pat_card,
+            text="Use {date} for the trading date. "
+            "File extension (.txt / .csv) is added automatically.",
+            font=(self.FONT, 11),
+            fg=self._p["FG3"],
+            bg=self._p["CARD_BG"],
+            justify="left",
+        ).pack(anchor="w", pady=(0, 14))
+
+        # equity row
+        eq_row = Frame(pat_card, bg=self._p["CARD_BG"])
+        eq_row.pack(fill="x", pady=(0, 8))
+
+        Label(
+            eq_row,
+            text="Equity",
+            font=(self.FONT, 11),
+            fg=self._p["FG2"],
+            bg=self._p["CARD_BG"],
+            width=8,
+            anchor="w",
+        ).pack(side="left")
+
+        self._eq_entry = ctk.CTkEntry(
+            eq_row,
+            textvariable=self._filename_prefix_var,
+            width=220,
+            font=(self.FONT, 11),
+            fg_color=self._p["ENTRY_BG"],
+            text_color=self._p["ENTRY_FG"],
+            border_color=self._p["SEP"],
+            border_width=1,
+            corner_radius=6,
+            placeholder_text="{date}-NSE-EQ",
+        )
+        self._eq_entry.pack(side="left", padx=(8, 0))
+
+        self._eq_preview = Label(
+            eq_row,
+            text="",
+            font=(self.FONT, 10),
+            fg=self._p["FG3"],
+            bg=self._p["CARD_BG"],
+        )
+        self._eq_preview.pack(side="left", padx=(10, 0))
+        self._filename_prefix_var.trace("w", lambda *_: self._update_output_previews())
+
+        # indices row
+        idx_row = Frame(pat_card, bg=self._p["CARD_BG"])
+        idx_row.pack(fill="x")
+
+        Label(
+            idx_row,
+            text="Indices",
+            font=(self.FONT, 11),
+            fg=self._p["FG2"],
+            bg=self._p["CARD_BG"],
+            width=8,
+            anchor="w",
+        ).pack(side="left")
+
+        self._idx_entry = ctk.CTkEntry(
+            idx_row,
+            textvariable=self._idx_filename_prefix_var,
+            width=220,
+            font=(self.FONT, 11),
+            fg_color=self._p["ENTRY_BG"],
+            text_color=self._p["ENTRY_FG"],
+            border_color=self._p["SEP"],
+            border_width=2,
+            corner_radius=6,
+            placeholder_text="{date}-NSE-IDX",
+        )
+        self._idx_entry.pack(side="left", padx=(8, 0))
+
+        self._idx_preview = Label(
+            idx_row,
+            text="",
+            font=(self.FONT, 10),
+            fg=self._p["FG3"],
+            bg=self._p["CARD_BG"],
+        )
+        self._idx_preview.pack(side="left", padx=(10, 0))
+        self._idx_filename_prefix_var.trace(
+            "w", lambda *_: self._update_output_previews()
+        )
+
+        # ── Split toggle ──────────────────────────────────────────────────────
+        split_card = Frame(
+            outer,
+            bg=self._p["CARD_BG"],
+            highlightbackground=self._p["SEP"],
+            highlightthickness=1,
+            padx=22,
+            pady=18,
+        )
+        split_card.pack(fill="x", pady=(12, 0))
+
+        split_row = Frame(split_card, bg=self._p["CARD_BG"])
+        split_row.pack(fill="x", pady=(0, 6))
+
+        Label(
+            split_row,
+            text="Split Equity and Indices",
+            font=(self.FONT, 13, "bold"),
+            fg=self._p["FG1"],
+            bg=self._p["CARD_BG"],
+        ).pack(side="left")
+
+        self._split_switch = ctk.CTkSwitch(
+            split_row,
+            text="",
+            variable=self._split_files_var,
+            onvalue=True,
+            offvalue=False,
+            button_color=self._p["TOGGLE_OFF"],
+            progress_color=self._p["TOGGLE_ON"],
+            command=self._on_split_toggle,
+        )
+        self._split_switch.pack(side="right")
+
+        Label(
+            split_card,
+            text="When ON — two separate files saved per day using "
+            "the patterns above.\n"
+            "When OFF — one combined file using the Equity pattern.",
+            font=(self.FONT, 11),
+            fg=self._p["FG3"],
+            bg=self._p["CARD_BG"],
+            justify="left",
+        ).pack(anchor="w")
+
+        # apply initial state
+        self.win.after(60, self._apply_split_state)
+        self._update_output_previews()
+
     # ── footer ────────────────────────────────────────────────────────────────
     def _build_footer(self, parent: object) -> None:
         from tkinter import Frame
@@ -1075,6 +1480,11 @@ class SettingsWindow:
             h = self._schedule_hour_var.get().zfill(2)
             m = self._schedule_min_var.get().zfill(2)
             cfg["schedule_time"] = f"{h}:{m}"
+            cfg["theme"] = self._theme_var.get()
+            cfg["log_size"] = self._log_size_var.get()
+            cfg["filename_pattern"] = self._filename_prefix_var.get().strip()
+            cfg["idx_filename_pattern"] = self._idx_filename_prefix_var.get().strip()
+            cfg["split_eq_idx"] = bool(self._split_files_var.get())
             save_app_config(cfg)
             save_symbol_mapping(mapping)
             if self._on_save_callback:

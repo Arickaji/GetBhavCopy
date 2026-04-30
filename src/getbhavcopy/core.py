@@ -8,6 +8,7 @@ from io import StringIO
 import pandas as pd
 import requests
 
+from getbhavcopy.config import load_config
 from getbhavcopy.settings_windows import load_symbol_mapping
 
 logger = logging.getLogger("getbhavcopy")
@@ -150,39 +151,46 @@ class GetBhavCopy:
         return self._apply_symbol_mapping(df)
 
     def process_day(self, day):
-
         date_str = day.strftime("%Y-%m-%d")
+        ext = "csv" if self.Output_File_Formate == "CSV" else "txt"
 
-        file_path = os.path.join(
-            self.SaveFolderName,
-            (
-                f"{date_str}-NSE-EQ.csv"
-                if self.Output_File_Formate == "CSV"
-                else f"{date_str}-NSE-EQ.txt"
-            ),
-        )
+        _cfg = load_config()
+        _pattern = _cfg.get("filename_pattern", "").strip() or "{date}-NSE-EQ"
+        _idx_pattern = _cfg.get("idx_filename_pattern", "").strip() or "{date}-NSE-IDX"
+        _split = bool(_cfg.get("split_eq_idx", False))
+        _eq_name = _pattern.replace("{date}", date_str)
+        _idx_name = _idx_pattern.replace("{date}", date_str)
 
-        if os.path.exists(file_path):
-            logger.info(f"Skipping existing {date_str}")
-
-            return "skipped"
+        if _split:
+            eq_path = os.path.join(self.SaveFolderName, f"{_eq_name}.{ext}")
+            idx_path = os.path.join(self.SaveFolderName, f"{_idx_name}.{ext}")
+            if os.path.exists(eq_path) and os.path.exists(idx_path):
+                logger.info(f"Skipping existing {date_str}")
+                return "skipped"
+        else:
+            file_path = os.path.join(self.SaveFolderName, f"{_eq_name}.{ext}")
+            if os.path.exists(file_path):
+                logger.info(f"Skipping existing {date_str}")
+                return "skipped"
 
         try:
             eq = self.get_equity_bhavcopy_for_date(day)
-
             idx = self.get_nse_indices_data_for_date(day)
 
-            final_df = pd.concat([eq, idx], ignore_index=True)
-
-            final_df.to_csv(file_path, index=False, header=False)
-
-            logger.info(f"Saved {file_path}")
+            if _split:
+                eq.to_csv(eq_path, index=False, header=False)
+                idx.to_csv(idx_path, index=False, header=False)
+                logger.info(f"Saved equity  → {eq_path}")
+                logger.info(f"Saved indices → {idx_path}")
+            else:
+                final_df = pd.concat([eq, idx], ignore_index=True)
+                final_df.to_csv(file_path, index=False, header=False)
+                logger.info(f"Saved {file_path}")
 
             return "success"
 
         except Exception as e:
             logger.warning(f"Failed {date_str} : {str(e)}")
-
             return "failed"
 
     def get_bhavcopy(self):

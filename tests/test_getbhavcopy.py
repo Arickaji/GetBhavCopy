@@ -72,7 +72,38 @@ def test_same_start_end_date_valid(tmp_path: Path) -> None:
 
 
 @patch("getbhavcopy.core.requests.Session.get", side_effect=fake_session_get)
-def test_txt_file_created_on_success(_mock: MagicMock, tmp_path: Path) -> None:
+@patch(
+    "getbhavcopy.core.load_config",
+    return_value={
+        "split_eq_idx": True,
+        "filename_pattern": "",
+        "idx_filename_pattern": "",
+    },
+)
+def test_split_creates_two_files(
+    _cfg: MagicMock, _mock: MagicMock, tmp_path: Path
+) -> None:
+    b = GetBhavCopy("2026-02-13", "2026-02-13", str(tmp_path), "TXT", None, None)
+    b.get_bhavcopy()
+    files = list(tmp_path.glob("*.txt"))
+    assert len(files) == 2
+    names = {f.name for f in files}
+    assert "2026-02-13-NSE-EQ.txt" in names
+    assert "2026-02-13-NSE-IDX.txt" in names
+
+
+@patch("getbhavcopy.core.requests.Session.get", side_effect=fake_session_get)
+@patch(
+    "getbhavcopy.core.load_config",
+    return_value={
+        "split_eq_idx": False,
+        "filename_pattern": "",
+        "idx_filename_pattern": "",
+    },
+)
+def test_txt_file_created_on_success(
+    _cfg: MagicMock, _mock: MagicMock, tmp_path: Path
+) -> None:
     b = GetBhavCopy("2026-02-13", "2026-02-13", str(tmp_path), "TXT", None, None)
     b.get_bhavcopy()
     files = list(tmp_path.glob("*.txt"))
@@ -81,7 +112,17 @@ def test_txt_file_created_on_success(_mock: MagicMock, tmp_path: Path) -> None:
 
 
 @patch("getbhavcopy.core.requests.Session.get", side_effect=fake_session_get)
-def test_csv_file_created_on_success(_mock: MagicMock, tmp_path: Path) -> None:
+@patch(
+    "getbhavcopy.core.load_config",
+    return_value={
+        "split_eq_idx": False,
+        "filename_pattern": "",
+        "idx_filename_pattern": "",
+    },
+)
+def test_csv_file_created_on_success(
+    _cfg: MagicMock, _mock: MagicMock, tmp_path: Path
+) -> None:
     b = GetBhavCopy("2026-02-13", "2026-02-13", str(tmp_path), "CSV", None, None)
     b.get_bhavcopy()
     files = list(tmp_path.glob("*.csv"))
@@ -103,7 +144,17 @@ def test_file_content_has_correct_columns(_mock: MagicMock, tmp_path: Path) -> N
 
 
 @patch("getbhavcopy.core.requests.Session.get", side_effect=fake_session_get)
-def test_existing_file_is_skipped(_mock: MagicMock, tmp_path: Path) -> None:
+@patch(
+    "getbhavcopy.core.load_config",
+    return_value={
+        "split_eq_idx": False,
+        "filename_pattern": "",
+        "idx_filename_pattern": "",
+    },
+)
+def test_existing_file_is_skipped(
+    _cfg: MagicMock, _mock: MagicMock, tmp_path: Path
+) -> None:
     existing = tmp_path / "2026-02-13-NSE-EQ.txt"
     existing.write_text("already exists")
     b = GetBhavCopy("2026-02-13", "2026-02-13", str(tmp_path), "TXT", None, None)
@@ -142,7 +193,17 @@ def test_weekend_dates_skipped(_mock: MagicMock, tmp_path: Path) -> None:
 
 
 @patch("getbhavcopy.core.requests.Session.get", side_effect=fake_session_get)
-def test_symbol_mapping_applied(_mock: MagicMock, tmp_path: Path) -> None:
+@patch(
+    "getbhavcopy.core.load_config",
+    return_value={
+        "split_eq_idx": False,
+        "filename_pattern": "",
+        "idx_filename_pattern": "",
+    },
+)
+def test_symbol_mapping_applied(
+    _cfg: MagicMock, _mock: MagicMock, tmp_path: Path
+) -> None:
     b = GetBhavCopy("2026-02-13", "2026-02-13", str(tmp_path), "TXT", None, None)
     b._symbol_mapping = {"RELIANCE": "REL"}
     b.get_bhavcopy()
