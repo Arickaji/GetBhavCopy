@@ -772,7 +772,7 @@ footer{
   <div class="hl">
     <div class="hl-tag">
       <span class="hl-tag-dot"></span>
-      NSE EQUITY &amp; INDICES · FREE · v1.1.1
+      NSE EQUITY &amp; INDICES · FREE · v1.2.0
     </div>
 
     <h1 class="h-title">
@@ -830,7 +830,7 @@ footer{
           <div class="app-log">
             <div class="app-ll g">17:30:01 | INFO | UI logging initialized.</div>
             <div class="app-ll d">17:30:03 | INFO | Checking for updates...</div>
-            <div class="app-ll g">17:30:03 | INFO | Up to date (v1.1.1).</div>
+            <div class="app-ll g">17:30:03 | INFO | Up to date (v1.2.0).</div>
             <div class="app-ll g" id="appll"></div>
           </div>
         </div>
@@ -983,6 +983,18 @@ footer{
     <span class="s-tag rv" style="display:block">Changelog</span>
     <h2 class="s-title rv">Release <strong>history.</strong></h2>
     <div class="cl-list">
+      <div class="cle rv">
+        <div class="clh">
+          <span class="clb lat">v1.2.0</span>
+          <span class="cld">April 2026</span>
+        </div>
+        <ul class="cli">
+          <li>Appearance panel — theme selector (System / Dark / Light) and log text size</li>
+          <li>Output panel — custom filename pattern with live preview</li>
+          <li>Split toggle — equity and indices saved as separate files when enabled</li>
+          <li>Windows notifications — winotify primary, win10toast fallback, PowerShell last resort</li>
+        </ul>
+      </div>
       <div class="cle rv"><div class="clh"><span class="clb lat">v1.1.1</span><span class="cld">April 2026</span></div><ul class="cli"><li>NSE holiday calendar — fetches official trading holidays from NSE API</li><li>Holidays skipped proactively before any download attempt</li><li>Calendar cached locally, auto-refreshed every 30 days</li><li>Headless catch-up checks today automatically after 17:30 IST</li><li>2-day retry window handles late NSE data publication</li></ul></div>
       <div class="cle rv"><div class="clh"><span class="clb lat">v1.1.0</span><span class="cld">April 2026</span></div><ul class="cli"><li>Missed download recovery — auto-detects and fills data gaps</li><li>Launch banner shows missing dates with one-click download</li><li>Headless mode checks last 7 trading days on every run</li><li>Failed dates cache prevents retrying holidays forever</li></ul></div>
       <div class="cle rv"><div class="clh"><span class="clb lat">v1.0.10</span><span class="cld">April 2026</span></div><ul class="cli"><li>OS-level scheduler — Mac LaunchAgent, Windows Task Scheduler, Linux crontab</li><li>Headless mode — silent background download via --headless flag</li><li>Smart time picker with HH:MM validation and auto-advance</li></ul></div>
@@ -1199,7 +1211,7 @@ const termLines = [
   {t:'suc', tx:'NSE holidays checked — 20 cached'},
   {t:'suc', tx:'Saved 2026-04-14-NSE-EQ.txt ✓  [1.48s]'},
   {t:'cmd', tx:'python -m getbhavcopy'},
-  {t:'suc', tx:'UI initialized · Up to date (v1.1.1)'},
+  {t:'suc', tx:'UI initialized · Up to date (v1.2.0)'},
 ];
 let termStarted = false;
 const tshell = document.getElementById('tshell');
