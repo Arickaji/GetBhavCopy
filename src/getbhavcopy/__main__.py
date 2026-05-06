@@ -84,9 +84,21 @@ def _run_headless() -> None:
             if date_str in failed_cache:
                 logger.debug(f"Skipping known failed date: {date_str}")
                 continue
-            filename = f"{date_str}-NSE-EQ.{ext}"
-            if not (Path(save_dir) / filename).exists():
-                missing.append(date_str)
+            _pattern = cfg.get("filename_pattern", "").strip() or "{date}-NSE-EQ"
+            _idx_pattern = (
+                cfg.get("idx_filename_pattern", "").strip() or "{date}-NSE-IDX"
+            )
+            _split = bool(cfg.get("split_eq_idx", False))
+            eq_name = _pattern.replace("{date}", date_str)
+            eq_path = Path(save_dir) / f"{eq_name}.{ext}"
+            if _split:
+                idx_name = _idx_pattern.replace("{date}", date_str)
+                idx_path = Path(save_dir) / f"{idx_name}.{ext}"
+                if not eq_path.exists() or not idx_path.exists():
+                    missing.append(date_str)
+            else:
+                if not eq_path.exists():
+                    missing.append(date_str)
 
         if not missing:
             logger.info("Headless check complete — all recent files present")
