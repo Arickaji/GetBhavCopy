@@ -78,7 +78,7 @@ types-requests==2.33.0.20260402
 typing_extensions==4.15.0
 tzdata==2025.2
 urllib3==2.5.0
-virtualenv==21.2.0
+virtualenv==21.2.4
 wcwidth==0.6.0
 webencodings==0.5.1
 wheel==0.46.3
