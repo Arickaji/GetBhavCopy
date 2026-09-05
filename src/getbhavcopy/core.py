@@ -49,6 +49,12 @@ class GetBhavCopy:
                 "Referer": "https://www.nseindia.com",
             }
         )
+        try:
+            import certifi
+
+            self.session.verify = certifi.where()
+        except Exception:
+            self.session.verify = True
         self._symbol_mapping = load_symbol_mapping()
 
     def _validate_response_csv(self, r):
@@ -190,7 +196,16 @@ class GetBhavCopy:
             return "success"
 
         except Exception as e:
-            logger.warning(f"Failed {date_str} : {str(e)}")
+            err = str(e)
+            if "SSL" in err or "CERTIFICATE" in err or "ssl" in err:
+                logger.warning(
+                    f"Failed {date_str} : SSL certificate error — "
+                    f"please download the latest version of GetBhavCopy "
+                    f"from github.com/AricKaji/GetBhavCopy/releases "
+                    f"to fix this automatically."
+                )
+            else:
+                logger.warning(f"Failed {date_str} : {err}")
             return "failed"
 
     def get_bhavcopy(self):
