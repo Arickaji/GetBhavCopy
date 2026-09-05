@@ -212,7 +212,10 @@ pre-commit run
 
 ## Changelog
 
-## What's new in v1.2.0
+## What's new in v1.2.1
+- Fixed: headless scheduler now respects custom filename patterns and split setting
+
+### v1.2.0 - May 2026
 
 - **Appearance settings** — switch between System, Dark and Light theme instantly
 - **Custom filename patterns** — rename output files using `{date}` placeholders
