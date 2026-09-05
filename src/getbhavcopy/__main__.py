@@ -7,7 +7,21 @@ Two modes:
                                      (used by OS scheduler)
 """
 
+import os
 import sys
+
+# ── SSL fix for Windows exe builds ───────────────────────────────────────────
+# Bundled certifi may be outdated on older machines.
+# Force requests to use the bundled certifi CA bundle explicitly.
+if sys.platform == "win32":
+    try:
+        import certifi
+
+        os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+        os.environ.setdefault("REQUESTS_CA_BUNDLE", certifi.where())
+    except Exception:
+        pass
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 def main() -> None:
