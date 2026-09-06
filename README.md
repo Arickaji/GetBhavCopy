@@ -212,7 +212,10 @@ pre-commit run
 
 ## Changelog
 
-## What's new in v1.2.1
+## What's new in v1.2.2
+- Fixed: SSL certificate verification for Windows exe builds
+
+## v1.2.1 - May 2026
 - Fixed: headless scheduler now respects custom filename patterns and split setting
 
 ### v1.2.0 - May 2026
