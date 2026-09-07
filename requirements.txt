@@ -16,7 +16,7 @@ distlib==0.4.0
 docopt==0.6.2
 executing==2.2.1
 fastjsonschema==2.21.2
-filelock==3.25.1
+filelock==3.32.5
 -e git+https://github.com/Arickaji/GetBhavCopy.git@34ba5569fcff05e97e3c932e3484b27622cc1567#egg=getbhavcopy
 identify==2.6.17
 idna==3.11
