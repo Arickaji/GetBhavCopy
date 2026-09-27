@@ -236,9 +236,21 @@ class App:
                     continue
                 if date_str in failed_cache:
                     continue
-                filename = f"{date_str}-NSE-EQ.{ext}"
-                if not (Path(save_dir) / filename).exists():
-                    missing.append(date_str)
+                _pattern = cfg.get("filename_pattern", "").strip() or "{date}-NSE-EQ"
+                _idx_pattern = (
+                    cfg.get("idx_filename_pattern", "").strip() or "{date}-NSE-IDX"
+                )
+                _split = bool(cfg.get("split_eq_idx", False))
+                eq_name = _pattern.replace("{date}", date_str)
+                eq_path = Path(save_dir) / f"{eq_name}.{ext}"
+                if _split:
+                    idx_name = _idx_pattern.replace("{date}", date_str)
+                    idx_path = Path(save_dir) / f"{idx_name}.{ext}"
+                    if not eq_path.exists() or not idx_path.exists():
+                        missing.append(date_str)
+                else:
+                    if not eq_path.exists():
+                        missing.append(date_str)
 
             if missing:
                 self.root.after(
@@ -1130,62 +1142,230 @@ class App:
         self._download_update(version, self._latest_assets)
 
     def _download_update(self, version: str, assets: list) -> None:
-        import urllib.request
-        import zipfile
+        from getbhavcopy.updater import (
+            apply_update_windows,
+            get_download_url,
+            open_releases_page,
+        )
 
-        platform_keyword = ""
-        if sys.platform == "darwin":
-            platform_keyword = "mac"
-        elif sys.platform == "win32":
-            platform_keyword = "windows"
-        else:
-            self._open_releases()
+        release = {"assets": assets}
+        download_url = get_download_url(release)
+
+        if not download_url:
+            logger.warning("No asset found for this platform — opening releases page")
+            open_releases_page()
             return
 
-        download_url = None
-        filename = None
-        for asset in assets:
-            name = asset.get("name", "").lower()
-            if platform_keyword in name:
-                download_url = asset.get("browser_download_url")
-                filename = asset.get("name")
-                break
+        # Show the update progress window immediately
+        progress_win = self._show_update_progress_window(version)
 
-        if not download_url or not filename:
-            self._open_releases()
-            return
+        def on_progress(pct: int) -> None:
+            self.root.after(
+                0,
+                lambda p=pct: progress_win["set_progress"](p),
+            )
 
-        downloads = Path.home() / "Downloads"
-        zip_path = downloads / filename
-        extract_folder = downloads / f"GetBhavCopy-v{version}"
+        def on_status(msg: str) -> None:
+            self.root.after(
+                0,
+                lambda m=msg: progress_win["set_status"](m),
+            )
 
-        logger.info(f"Downloading v{version}...")
-        self._status_var.set(f"Downloading v{version}...")
-
-        def do_download() -> None:
+        def do_update() -> None:
             try:
-                urllib.request.urlretrieve(download_url, zip_path)
-                extract_folder.mkdir(exist_ok=True)
-                with zipfile.ZipFile(zip_path, "r") as z:
-                    z.extractall(extract_folder)
-                zip_path.unlink()
+                if sys.platform == "win32":
+                    on_status("Downloading update...")
+                    apply_update_windows(download_url, version, on_progress)
+                elif sys.platform == "darwin":
+                    # Mac auto-update coming in a future release
+                    # Opens releases page for now
+                    self.root.after(0, progress_win["close"])
+                    open_releases_page()
+                else:
+                    open_releases_page()
+            except Exception as e:
+                logger.error(f"Update failed: {e}")
+                self.root.after(0, progress_win["close"])
                 self.root.after(
-                    0, lambda: self._download_complete(extract_folder, version)
+                    0,
+                    lambda: self._status_var.set("Update failed — see log"),
                 )
+                self.root.after(
+                    0,
+                    lambda: self._get_data_btn.configure(state="normal"),
+                )
+                self.root.after(0, open_releases_page)
+
+        threading.Thread(target=do_update, daemon=True).start()
+
+    def _show_update_progress_window(self, version: str) -> dict:
+        """
+        Show a professional update progress window.
+        Returns a dict with control functions:
+          set_progress(pct)  — update progress bar 0-100
+          set_status(msg)    — update status text
+          close()            — destroy the window
+        """
+        from tkinter import StringVar, Toplevel
+
+        win = Toplevel(self.root)
+        win.withdraw()
+        win.title("Updating GetBhavCopy")
+        win.configure(bg=self._c("BG"))
+        win.resizable(False, False)
+        win.overrideredirect(True)  # borderless window
+
+        # Size and center over main window
+        W, H = 420, 220
+        px = self.root.winfo_rootx()
+        py = self.root.winfo_rooty()
+        pw = self.root.winfo_width()
+        ph = self.root.winfo_height()
+        x = px + (pw - W) // 2
+        y = py + (ph - H) // 2
+        win.geometry(f"{W}x{H}+{x}+{y}")
+
+        # Border frame
+        border = ctk.CTkFrame(
+            win,
+            fg_color=self._c("SEP"),
+            corner_radius=12,
+        )
+        border.pack(fill="both", expand=True, padx=1, pady=1)
+
+        inner = ctk.CTkFrame(
+            border,
+            fg_color=self._c("BG"),
+            corner_radius=11,
+        )
+        inner.pack(fill="both", expand=True, padx=1, pady=1)
+
+        # App icon / emoji header
+        ctk.CTkLabel(
+            inner,
+            text="⬇",
+            font=(self.FONT, 32),
+            text_color=self._c("ACCENT_FG"),
+        ).pack(pady=(28, 4))
+
+        # Title
+        ctk.CTkLabel(
+            inner,
+            text=f"Updating to v{version}",
+            font=(self.FONT, 15, "bold"),
+            text_color=self._c("FG"),
+        ).pack()
+
+        # Status text — changes dynamically
+        status_var = StringVar(value="Preparing...")
+        status_lbl = ctk.CTkLabel(
+            inner,
+            textvariable=status_var,
+            font=(self.FONT, 11),
+            text_color=self._c("FG3"),
+        )
+        status_lbl.pack(pady=(6, 12))
+
+        # Progress bar
+        progress_bar = ctk.CTkProgressBar(
+            inner,
+            orientation="horizontal",
+            mode="determinate",
+            height=6,
+            corner_radius=3,
+            fg_color=self._c("BG2"),
+            progress_color=self._c("ACCENT_FG")
+            if self._palette is self.DARK
+            else self._c("ACCENT"),
+            width=340,
+        )
+        progress_bar.pack(pady=(0, 6))
+        progress_bar.set(0)
+
+        # Percentage label
+        pct_var = StringVar(value="0%")
+        ctk.CTkLabel(
+            inner,
+            textvariable=pct_var,
+            font=(self.FONT, 10),
+            text_color=self._c("FG3"),
+        ).pack()
+
+        # Footer note
+        ctk.CTkLabel(
+            inner,
+            text="GetBhavCopy will restart automatically",
+            font=(self.FONT, 10),
+            text_color=self._c("FG4") if "FG4" in self._palette else self._c("FG3"),
+        ).pack(pady=(8, 0))
+
+        win.deiconify()
+        win.lift()
+        win.attributes("-topmost", True)
+        win.transient(self.root)
+
+        # Animate indeterminate spinner before download starts
+        self._update_win_animating = True
+
+        _anim_step = [0.0]
+
+        def _animate_indeterminate() -> None:
+            if not self._update_win_animating:
+                # Snap to 0.20 so real progress starts from there cleanly
+                try:
+                    progress_bar.set(0.20)
+                except Exception:
+                    pass
+                return
+            try:
+                import math
+
+                _anim_step[0] += 0.06
+                # Oscillate between 0.05 and 0.18 — well below 0.20
+                val = 0.05 + 0.13 * (0.5 + 0.5 * math.sin(_anim_step[0]))
+                progress_bar.set(val)
+                win.after(40, _animate_indeterminate)
             except Exception:
-                self.root.after(0, lambda: logger.error("Download failed"))
-                self.root.after(0, lambda: self._status_var.set("Status: Ready"))
+                pass
 
-        threading.Thread(target=do_download, daemon=True).start()
+        win.after(100, _animate_indeterminate)
 
-    def _download_complete(self, folder: Path, version: str) -> None:
-        self._status_var.set("Status: Ready")
-        logger.info(f"v{version} downloaded and extracted to {folder}")
-        if messagebox.askyesno(
-            "Download Complete",
-            f"GetBhavCopy v{version} downloaded to:\n{folder}\n\nOpen folder now?",
-        ):
-            open_folder(folder)
+        _last_pct = [0]
+
+        def set_progress(pct: int) -> None:
+            self._update_win_animating = False
+            try:
+                if pct <= _last_pct[0]:
+                    return
+                _last_pct[0] = pct
+                # Reserve 0.0–0.20 for animation, map real progress to 0.20–1.0
+                mapped = 0.20 + (pct / 100) * 0.80
+                progress_bar.set(mapped)
+                pct_var.set(f"{pct}%")
+                if pct >= 100:
+                    status_var.set("Installing update...")
+                    pct_var.set("100%")
+            except Exception:
+                pass
+
+        def set_status(msg: str) -> None:
+            try:
+                status_var.set(msg)
+            except Exception:
+                pass
+
+        def close() -> None:
+            self._update_win_animating = False
+            try:
+                win.destroy()
+            except Exception:
+                pass
+
+        return {
+            "set_progress": set_progress,
+            "set_status": set_status,
+            "close": close,
+        }
 
     def _open_releases(self) -> None:
         url = "https://github.com/AricKaji/GetBhavCopy/releases/latest"
