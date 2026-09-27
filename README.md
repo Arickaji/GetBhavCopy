@@ -212,7 +212,13 @@ pre-commit run
 
 ## Changelog
 
-## What's new in v1.2.2
+## What's new in v1.3.0
+
+- **Windows auto-update** — click Download in the update banner and GetBhavCopy replaces itself and restarts automatically. No manual steps.
+- **Missing day banner** — now correctly respects custom filename patterns and split equity/indices setting
+- **Mac** — update banner opens the releases page directly (full Mac auto-update coming in v1.4.0)
+
+## v1.2.2 - August
 - Fixed: SSL certificate verification for Windows exe builds
 
 ## v1.2.1 - May 2026
