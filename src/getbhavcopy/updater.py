@@ -134,18 +134,17 @@ def get_latest_release() -> dict:
 
 
 def get_download_url(release: dict) -> str | None:
-    """
-    Find the download URL for the current platform from release assets.
-    Windows → first asset ending in .exe
-    Mac     → first asset with 'mac' or 'macos' in the name
-    """
     system = platform.system().lower()
     for asset in release.get("assets", []):
         name = asset.get("name", "").lower()
         url = asset.get("browser_download_url", "")
         if not url:
             continue
-        if system == "windows" and name.endswith(".exe"):
+        if (
+            system == "windows"
+            and ("win" in name or "windows" in name)
+            and name not in ("source code (zip)", "source code (tar.gz)")
+        ):
             return url
         if system == "darwin" and ("mac" in name or "macos" in name):
             return url
@@ -183,11 +182,28 @@ def apply_update_windows(
     current_exe = Path(sys.executable)
     logger.info(f"Current exe: {current_exe}")
     tmp_dir = Path(tempfile.mkdtemp(prefix="getbhavcopy_update_"))
+    zip_path = tmp_dir / "GetBhavCopy-windows.zip"
     new_exe = tmp_dir / "GetBhavCopy_new.exe"
 
     logger.info(f"Downloading GetBhavCopy v{new_version}...")
-    _download_with_progress(download_url, new_exe, progress_callback)
-    logger.info("Download complete — preparing update...")
+    _download_with_progress(download_url, zip_path, progress_callback)
+    logger.info("Download complete — extracting...")
+
+    # Extract exe from zip
+    import zipfile
+
+    with zipfile.ZipFile(zip_path, "r") as z:
+        # Find the .exe inside the zip
+        exe_names = [n for n in z.namelist() if n.lower().endswith(".exe")]
+        if not exe_names:
+            logger.error("No .exe found inside downloaded zip")
+            open_releases_page()
+            return
+        z.extract(exe_names[0], tmp_dir)
+        extracted_exe = tmp_dir / exe_names[0]
+        extracted_exe.rename(new_exe)
+    zip_path.unlink(missing_ok=True)
+    logger.info(f"Extracted: {new_exe}")
 
     template = _read_script("windows_update.bat")
     script = _fill(
